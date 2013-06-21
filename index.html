@@ -74,7 +74,7 @@ Blaster, and the base I/O port address of your hardware MPU interface, e.g.</p>
 
 <p><code>SOFTMPU.EXE /SB:220 /IRQ:5 /MPU:330</code></p>
 
-<p>The optional /DELAYSYSEX switch enables small transmission delays to prevent
+<p>The optional <code>/DELAYSYSEX</code> switch enables small transmission delays to prevent
 buffer overflow with the Rev.0 MT-32.</p>
 
 <p>SoftMPU will remain active until the PC is restarted. It occupies
@@ -94,7 +94,7 @@ approximately 6.5KB and can be loaded into high memory using the LH command.</p>
 
 <p><strong>Problem:</strong>  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
               sounds incorrect.
-<strong>Solution:</strong> Run SoftMPU with the /DELAYSYSEX switch.</p>
+<strong>Solution:</strong> Run SoftMPU with the <code>/DELAYSYSEX</code> switch.</p>
 
 <p><strong>Problem:</strong>  Music playback stops working after running a specific program.
 <strong>Solution:</strong> Restart your PC. Programs that reprogram the Real-Time Clock will
