@@ -54,6 +54,10 @@ Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ2,
 Solution: Use IRQ9 instead. This is supported by Yamaha YMF71x sound cards,
           maybe others too.
 
+Problem:  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
+          sounds incorrect.
+Solution: Run SoftMPU with the /DELAYSYSEX switch.
+
 Problem:  Music playback stops working after running a specific program.
 Solution: Restart your PC. Programs that reprogram the Real-Time Clock will
           stop SoftMPU from working correctly.
