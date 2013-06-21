@@ -37,7 +37,7 @@ CmdHandlerAddr  DW              OFFSET PortHandler
 
 SBPortAddr      DW              0
 SBIRQ           DB              0
-DelaySysEx      DB              0
+DelaySysex      DB              0
 
 NoVirtualise    DB              1                       ; Port virtualisation control
 
@@ -84,7 +84,7 @@ Start:          push            es
 		jnc             @@InitSoftMPU           ; Init MPU lib
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysEx
+@@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

@@ -35,6 +35,7 @@ void MPU401_EOIHandler(void);
 
 /* SOFTMPU: Event countdown timers */
 static Bitu event_countdown[NUM_EVENTS];
+extern Bitu MIDI_sysex_delay; /* SOFTMPU: Initialised in midi.c */
 
 /* SOFTMPU: Interrupt management functions */
 void PIC_ActivateIRQ(Bitu sbport)
@@ -132,6 +133,12 @@ void PIC_Init(void)
 void PIC_Update(void)
 {
         Bitu i;
+
+        /* SOFTMPU: Decrement sysex delay used in midi.c */
+        if (MIDI_sysex_delay > 0)
+        {
+                MIDI_sysex_delay--;
+        }
 
         /* SOFTMPU: Decrement countdown timers and dispatch as needed */
         for (i=0;i<NUM_EVENTS;i++)

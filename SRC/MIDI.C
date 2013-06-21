@@ -55,7 +55,7 @@ typedef int Bits;
 #define SYSEX_SIZE 1024
 #define RAWBUF  1024
 
-static char* MIDI_welcome_msg="\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.0    \x2d\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg="\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.1    \x2c\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_evt_len[256] = {
   0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x00
@@ -80,7 +80,6 @@ static Bit8u MIDI_evt_len[256] = {
   0,2,3,2, 0,0,1,0, 1,0,1,1, 1,0,1,0   // 0xf0
 };
 
-
 static struct {
 	Bitu mpuport;
 	Bitu status;
@@ -97,6 +96,9 @@ static struct {
 	bool available;
 	/*MidiHandler * handler;*/ /* SOFTMPU */
 } midi;
+
+/* SOFTMPU: Sysex delay is decremented from PIC_Update */
+Bitu MIDI_sysex_delay;
 
 static void PlayMsg(Bit8u* msg,Bitu len)
 {
@@ -124,10 +126,31 @@ static void PlayMsg(Bit8u* msg,Bitu len)
 };
 
 void MIDI_RawOutByte(Bit8u data) {
-        /*if (midi.sysex.start) {
-                Bit32u passed_ticks = GetTicks() - midi.sysex.start;
-                if (passed_ticks < midi.sysex.delay) SDL_Delay(midi.sysex.delay - passed_ticks);
-        }*/ /* TODO */
+        if (midi.sysex.start && MIDI_sysex_delay) {
+                _asm
+                {
+                                ; Bit 4 of port 061h toggles every 15.085us
+                                ; Use this to time the remaining sysex delay
+                                mov     ax,MIDI_sysex_delay
+                                mov     bx,17
+                                mul     bx                      ; Convert to ticks, result in ax
+                                mov     cx,ax
+                                in      al,061h
+                                and     al,10h                  ; Get initial value
+                                mov     bl,al
+                TestPort:       in      al,061h
+                                and     al,10h
+                                cmp     al,bl
+                                je      TestPort                ; Loop until toggled
+                                xor     bl,10h                  ; Invert
+                                dec     cx
+                                cmp     cx,0
+                                jne     TestPort
+                                mov     MIDI_sysex_delay,0      ; Set original delay to zero
+                }
+                /*Bit32u passed_ticks = GetTicks() - midi.sysex.start;
+                if (passed_ticks < midi.sysex.delay) SDL_Delay(midi.sysex.delay - passed_ticks);*/ /* SOFTMPU */
+        }
 
 	/* Test for a realtime MIDI message */
 	if (data>=0xf8) {
@@ -150,13 +173,16 @@ void MIDI_RawOutByte(Bit8u data) {
 				PlayMsg(midi.sysex.buf, midi.sysex.used); /* SOFTMPU */
 				if (midi.sysex.start) {
 					if (midi.sysex.buf[5] == 0x7F) {
-						midi.sysex.delay = 290; // All Parameters reset
+                                            /*midi.sysex.delay = 290;*/ /* SOFTMPU */ // All Parameters reset
+                                            MIDI_sysex_delay = 290*(RTCFREQ/1000);
 					} else if (midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x04) {
-						midi.sysex.delay = 145; // Viking Child
+                                            /*midi.sysex.delay = 145;*/ /* SOFTMPU */ // Viking Child
+                                            MIDI_sysex_delay = 145*(RTCFREQ/1000);
 					} else if (midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x01) {
-						midi.sysex.delay = 30; // Dark Sun 1
-                                        } /*else midi.sysex.delay = (Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
-                                        midi.sysex.start = GetTicks();*/ /* TODO */
+                                            /*midi.sysex.delay = 30;*/ /* SOFTMPU */ // Dark Sun 1
+                                            MIDI_sysex_delay = 30*(RTCFREQ/1000);
+                                        } else MIDI_sysex_delay = ((midi.sysex.used/13)+2)*(RTCFREQ/1000); /*(Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                                        midi.sysex.start = GetTicks();*/ /* SOFTMPU */
 				}
 			}
 
@@ -197,10 +223,11 @@ void MIDI_Init(Bitu mpuport,bool delaysysex)
         Bitu i; /* SOFTMPU */
 	midi.sysex.delay = 0;
 	midi.sysex.start = 0;
+	MIDI_sysex_delay = 0; /* SOFTMPU */
 
         if (delaysysex==true)
 	{
-		/*midi.sysex.start = GetTicks();*/ /* TODO */
+		midi.sysex.start = 1; /*GetTicks();*/ /* SOFTMPU */
 		/*LOG_MSG("MIDI:Using delayed SysEx processing");*/ /* SOFTMPU */
 	}
 	midi.mpuport=mpuport;

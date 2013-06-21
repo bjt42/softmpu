@@ -28,6 +28,8 @@
 
 #ifndef EXPORT_H
 
+#define RTCFREQ 4000 /* SOFTMPU: RTC interrupt frequency */
+
 typedef unsigned char Bit8u;
 typedef unsigned int Bitu;
 

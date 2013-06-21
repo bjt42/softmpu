@@ -36,7 +36,7 @@
 ; - MPU IRQ emulation using SB DSP
 ; - Intelligent mode emulation (thanks to DOSBox Team!)
 ;
-; TODO
+; 1.1
 ;
 ; - Optional SYSEX delays for Rev.0 MT-32
 ;

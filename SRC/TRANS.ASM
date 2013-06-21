@@ -67,7 +67,7 @@ Init:           ; Ensure ds=cs
 		je              @@EnableDelay
 		cmp             eax,'led/'
 		jne             @@NextParam
-@@EnableDelay:  mov             es:DelaySysEx,1         ; Enable sysex delays
+@@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
 		jmp             @@NextParam
 
 @@MPUBaseParam: cmp             cx,7                    ; Command plus 3-digit port
@@ -289,15 +289,12 @@ Init:           ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET SBSuccessEnd
 		int             021h
-; TODO
-;                cmp             es:DelaySysEx,0
-;                je              @@NoDelay
-;                mov             dx,OFFSET DelaysEnabled
-;                int             021h                    ; Print SysEx delay message
-
-                call            InstTimerISR            ; Install the IRQ2/8 watchdog
-
-@@NoDelay:      pop             ds
+                cmp             es:DelaySysex,0
+                je              @@NoDelay
+                mov             dx,OFFSET DelaysEnabled
+                int             021h                    ; Print sysex delay message
+@@NoDelay:      call            InstTimerISR            ; Install the IRQ2/8 watchdog
+                pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs

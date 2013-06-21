@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.0 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU 1.1 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
                 DB              0B3h,'                                              ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013        bjt                 ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013   The DOSBox Team     ',0B3h,0Dh,0Ah
@@ -56,14 +56,13 @@ MPUErrorEnd     DB              0Dh,0Ah,'$'
 MPUSuccessStart DB              0FBh,' MPU-401 detected at port ','$'
 MPUSuccessEnd   DB              0Dh,0Ah,'$'
 MPUPortNum      DB              '   ','$'
-DelaysEnabled   DB              'i SysEx delays enabled',0Dh,0Ah,'$'
+DelaysEnabled   DB              'i SYSEX delays enabled',0Dh,0Ah,'$'
 LoadedStart     DB              0Dh,0Ah,0Eh,' SoftMPU active at port ','$'
 LoadedMid       DB              ' IRQ','$'
 LoadedEnd       DB              0Dh,0Ah,'$'
 HelpText        DB              'Usage: SOFTMPU /SB:nnn /IRQ:nn /MPU:nnn [/DELAYSYSEX]',0Dh,0Ah
                 DB              0Dh,0Ah
-                DB              '  /SB:nnn    Sound Blaster base I/O port address (220-280)',0Dh,0Ah
-                DB              '  /IRQ:nn    Sound Blaster interrupt (2-11)',0Dh,0Ah
-                DB              '  /MPU:nnn   MPU-401 base I/O port address (220-350)',0Dh,0Ah,'$'
-; TODO
-;                DB              '  /DELAYSYSEX   Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah,'$'
+                DB              '  /SB:nnn       Sound Blaster base I/O port address (220-280)',0Dh,0Ah
+                DB              '  /IRQ:nn       Sound Blaster interrupt (2-11)',0Dh,0Ah
+                DB              '  /MPU:nnn      MPU-401 base I/O port address (220-350)',0Dh,0Ah
+                DB              '  /DELAYSYSEX   Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah,'$'

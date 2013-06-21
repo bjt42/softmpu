@@ -68,7 +68,6 @@ static void MPU401_EOIHandlerDispatch(void);
 #define MPU401_TIMECONSTANT 60000
 /*#define MPU401_RESETBUSY 27*/ /* SOFTMPU: Seems a very long time to make the app wait for reset? */
 #define MPU401_RESETBUSY 0 /* SOFTMPU: Reset immediately otherwise we may hang the app */
-#define MPU401_RTCFREQ 4000 /* SOFTMPU: RTC interrupt frequency */
 
 enum MpuMode { M_UART,M_INTELLIGENT };
 typedef enum MpuMode MpuMode; /* SOFTMPU */
@@ -221,25 +220,25 @@ void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 			mpu.clock.clock_to_host=true;
 			break;
 		case 0xc2: /* Internal timebase */
-                        mpu.clock.timebase=48/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=48/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc3:
-                        mpu.clock.timebase=72/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=72/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc4:
-                        mpu.clock.timebase=96/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=96/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc5:
-                        mpu.clock.timebase=120/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=120/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc6:
-                        mpu.clock.timebase=144/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=144/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc7:
-                        mpu.clock.timebase=168/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=168/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		case 0xc8:
-                        mpu.clock.timebase=192/(MPU401_RTCFREQ/1000); /* SOFTMPU */
+                        mpu.clock.timebase=192/(RTCFREQ/1000); /* SOFTMPU */
 			break;
 		/* Commands with data byte */
 		case 0xe0: case 0xe1: case 0xe2: case 0xe4: case 0xe6: 
@@ -645,7 +644,7 @@ static void MPU401_Reset(void) {
 	mpu.state.command_byte=0;
 	mpu.state.block_ack=false;
 	mpu.clock.tempo=mpu.clock.old_tempo=100;
-        mpu.clock.timebase=mpu.clock.old_timebase=120/(MPU401_RTCFREQ/1000);
+        mpu.clock.timebase=mpu.clock.old_timebase=120/(RTCFREQ/1000);
 	mpu.clock.tempo_rel=mpu.clock.old_tempo_rel=40;
 	mpu.clock.tempo_grad=0;
 	mpu.clock.clock_to_host=false;
