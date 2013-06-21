@@ -53,7 +53,7 @@ SBDetected      DB              0
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work
-IDPad           DB              1 DUP (?)
+IDPad           DB              3 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
                 INCLUDE         inthand.asm             ; Interrupt handlers

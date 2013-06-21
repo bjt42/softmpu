@@ -136,13 +136,13 @@ void MIDI_RawOutByte(Bit8u data) {
                                 mul     bx                      ; Convert to ticks, result in ax
                                 mov     cx,ax
                                 in      al,061h
-                                and     al,10h                  ; Get initial value
+                                and     al,010h                 ; Get initial value
                                 mov     bl,al
                 TestPort:       in      al,061h
-                                and     al,10h
+                                and     al,010h
                                 cmp     al,bl
                                 je      TestPort                ; Loop until toggled
-                                xor     bl,10h                  ; Invert
+                                xor     bl,010h                 ; Invert
                                 dec     cx
                                 cmp     cx,0
                                 jne     TestPort
