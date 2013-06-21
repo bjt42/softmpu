@@ -33,12 +33,12 @@
 <p><strong>Discuss SoftMPU here: <a href="http://vogons.zetafleet.com/viewtopic.php?t=36023">http://vogons.zetafleet.com/viewtopic.php?t=36023</a></strong></p>
 
 <hr><h2>
-<a name="softmpu-10-by-bjt---software-mpu-401-emulator" class="anchor" href="#softmpu-10-by-bjt---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.0 by bjt - Software MPU-401 Emulator</h2>
+<a name="softmpu-11-by-bjt---software-mpu-401-emulator" class="anchor" href="#softmpu-11-by-bjt---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.1 by bjt - Software MPU-401 Emulator</h2>
 
 <p>Copyright (C) 2013        bjt
 Copyright (C) 2002-2013   The DOSBox Team</p>
 
-<p>Release Notes (17/06/13)</p>
+<p>Release Notes (20/06/13)</p>
 
 <h3>
 <a name="what-is-it" class="anchor" href="#what-is-it"><span class="octicon octicon-link"></span></a>WHAT IS IT?</h3>
@@ -74,10 +74,11 @@ Blaster, and the base I/O port address of your hardware MPU interface, e.g.</p>
 
 <p><code>SOFTMPU.EXE /SB:220 /IRQ:5 /MPU:330</code></p>
 
-<p>SoftMPU will remain active until the PC is restarted.</p>
+<p>The optional /DELAYSYSEX switch enables small transmission delays to prevent
+buffer overflow with the Rev.0 MT-32.</p>
 
-<p>SoftMPU occupies approximately 6.5KB and can be loaded into high memory using
-the LH command.</p>
+<p>SoftMPU will remain active until the PC is restarted. It occupies
+approximately 6.5KB and can be loaded into high memory using the LH command.</p>
 
 <h3>
 <a name="troubleshooting" class="anchor" href="#troubleshooting"><span class="octicon octicon-link"></span></a>TROUBLESHOOTING</h3>
@@ -90,6 +91,10 @@ the LH command.</p>
               but my sound card doesn't support it.
 <strong>Solution:</strong> Use IRQ9 instead. This is supported by Yamaha YMF71x sound cards,
               maybe others too.</p>
+
+<p><strong>Problem:</strong>  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
+              sounds incorrect.
+<strong>Solution:</strong> Run SoftMPU with the /DELAYSYSEX switch.</p>
 
 <p><strong>Problem:</strong>  Music playback stops working after running a specific program.
 <strong>Solution:</strong> Restart your PC. Programs that reprogram the Real-Time Clock will
