@@ -40,6 +40,10 @@
 ;
 ; - Optional SYSEX delays for Rev.0 MT-32
 ;
+; 1.2
+;
+; - Merged latest DOSBox reset delay patch
+;
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init
