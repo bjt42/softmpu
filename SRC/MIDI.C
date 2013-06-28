@@ -132,7 +132,7 @@ void MIDI_RawOutByte(Bit8u data) {
                                 ; Bit 4 of port 061h toggles every 15.085us
                                 ; Use this to time the remaining sysex delay
                                 mov     ax,MIDI_sysex_delay
-                                mov     bx,17
+                                mov     bx,17                   ; Assume 4kHz RTC
                                 mul     bx                      ; Convert to ticks, result in ax
                                 mov     cx,ax
                                 in      al,061h

@@ -66,7 +66,7 @@ static void MPU401_EOIHandlerDispatch(void);
 #define MPU401_REVISION 0x01
 #define MPU401_QUEUE 32
 #define MPU401_TIMECONSTANT 60000
-#define MPU401_RESETBUSY 27
+#define MPU401_RESETBUSY 27*(RTCFREQ/1000) /* SOFTMPU */
 
 enum MpuMode { M_UART,M_INTELLIGENT };
 typedef enum MpuMode MpuMode; /* SOFTMPU */
@@ -149,14 +149,21 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	/* SOFTMPU: Reflect hardware DRR */
         _asm
 	{
-			mov     dx,mpu.mpuport
-			inc     dx
-			in      al,dx
-			and     al,040h
-			or      retval,al
+                mov     dx,mpu.mpuport
+                inc     dx
+                in      al,dx
+                and     al,040h
+                or      retval,al
         }
         if (mpu.state.cmd_pending) retval|=0x40;
 	if (!mpu.queue_used) retval|=0x80;
+
+        /* SOFTMPU: Handle spinning on status with interrupts disabled */
+        if (mpu.state.reset)
+        {
+                PIC_Update(true);
+        }
+
 	return retval;
 }
 

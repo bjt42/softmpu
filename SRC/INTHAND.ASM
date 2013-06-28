@@ -63,7 +63,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 push            ds
                 mov             ax,SEG _DATA
                 mov             ds,ax
-                INVOKE          PIC_Update
+                INVOKE          PIC_Update,false
                 pop             ds
                 popa
 
