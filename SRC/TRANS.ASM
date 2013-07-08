@@ -206,6 +206,9 @@ Init:           ; Ensure ds=cs
 		jmp             Terminate
 
 @@FoundEMM:     ; Check if already loaded
+                ; Disable interrupts so registers aren't pushed to memory
+                pushf
+                cli
 		mov             si,OFFSET es:IDString
 		mov             eax,DWORD PTR es:[si]
 		inc             eax                     ; Construct valid ID string
@@ -225,6 +228,7 @@ Init:           ; Ensure ds=cs
 		cmp             esi,00100000h           ; Stop at 1MB
 		jne             @@CompareNext
 		pop             ds
+                popf                                    ; Enable interrupts
 
 		; Check we've got a BIOS with RTC support
 		call            DetectRTC
@@ -388,6 +392,7 @@ PrintHelp:      mov             ah,9
 		jmp             Terminate
 
 FoundID:        pop             ds                      ; Restore segment base
+                popf                                    ; Enable interrupts
 		mov             ah,9
 		mov             dx,OFFSET LoadedError
 		int             021h

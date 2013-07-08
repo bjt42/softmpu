@@ -42,7 +42,7 @@
 ;
 ; 1.2
 ;
-; - Merged latest DOSBox reset delay patch
+; - Fixed loaded detection
 ;
 ; ------------------------------------------
 
