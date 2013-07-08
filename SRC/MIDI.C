@@ -55,7 +55,7 @@ typedef int Bits;
 #define SYSEX_SIZE 1024
 #define RAWBUF  1024
 
-static char* MIDI_welcome_msg="\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.1    \x2c\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg="\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.2    \x2b\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_evt_len[256] = {
   0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x00
@@ -132,7 +132,7 @@ void MIDI_RawOutByte(Bit8u data) {
                                 ; Bit 4 of port 061h toggles every 15.085us
                                 ; Use this to time the remaining sysex delay
                                 mov     ax,MIDI_sysex_delay
-                                mov     bx,17
+                                mov     bx,17                   ; Assume 4kHz RTC
                                 mul     bx                      ; Convert to ticks, result in ax
                                 mov     cx,ax
                                 in      al,061h

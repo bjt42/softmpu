@@ -1,5 +1,5 @@
 ----------------------------------------------
-SoftMPU 1.1 by bjt - Software MPU-401 Emulator
+SoftMPU 1.2 by bjt - Software MPU-401 Emulator
 ----------------------------------------------
 Copyright (C) 2013        bjt
 Copyright (C) 2002-2013   The DOSBox Team
@@ -41,7 +41,7 @@ The optional /DELAYSYSEX switch enables small transmission delays to prevent
 buffer overflow with the Rev.0 MT-32.
 
 SoftMPU will remain active until the PC is restarted. It occupies
-approximately 6.5KB and can be loaded into high memory using the LH command.
+approximately 7KB and can be loaded into high memory using the LH command.
 
 TROUBLESHOOTING
 
