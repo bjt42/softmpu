@@ -42,7 +42,12 @@
 ;
 ; 1.2
 ;
+; - Fixed loaded detection
+;
+; 1.3
+;
 ; - Merged latest DOSBox reset delay patch
+; - Fixed "It Came From The Desert"
 ;
 ; ------------------------------------------
 

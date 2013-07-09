@@ -23,7 +23,7 @@
 ; RTC, SB DMA and IRQ2/8 Watchdog interrupt handlers
 ;
 
-IntStackSize    EQU             0200h                   ; 512 byte stack for handler
+IntStackSize    EQU             0100h                   ; 256 byte stack for handler
 IntStack        DB              IntStackSize DUP (?)    ; Declare stack array
 IntSP           EQU             (OFFSET IntStack)+IntStackSize
 
