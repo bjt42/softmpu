@@ -49,9 +49,9 @@ Problem:  When using a PS/2 mouse, moving the cursor causes slow playback.
 Solution: Use a mouse driver that supports direct hardware access e.g.
           CuteMouse 2.0 (but not 2.1).
 
-Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ2,
+Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ 2,
           but my sound card doesn't support it.
-Solution: Use IRQ9 instead. This is supported by Yamaha YMF71x sound cards,
+Solution: Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
           maybe others too.
 
 Problem:  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback

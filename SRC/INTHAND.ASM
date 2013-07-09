@@ -20,7 +20,7 @@
 ; SoftMPU by bjt - Software MPU-401 Emulator
 ; ------------------------------------------
 ;
-; RTC, SB DMA and IRQ2/8 Watchdog interrupt handlers
+; RTC, SB DMA and IRQ 2/8 Watchdog interrupt handlers
 ;
 
 IntStackSize    EQU             0100h                   ; 256 byte stack for handler
@@ -118,6 +118,8 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
                 test            al,01h                  ; 8-bit IRQ flag
                 jz              @@ExitISR               ; Was the interrupt meant for us?
                 mov             SBDetected,1            ; Signal detection success
+                cmp             NoSBEOI,1               ; Do we want to EOI?
+                je              @@ExitISR
 
                 ; Acknowledge interrupt
                 mov             dx,SBPortAddr
@@ -148,7 +150,7 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
                 ; Save scratch registers
                 mov             SavedAX,ax
 
-                ; Make sure IRQ2 (cascade) is unmasked
+                ; Make sure IRQ 2 (cascade) is unmasked
                 ; Some games (e.g. Gateway) disable it, causing problems with PS/2 mice
                 in              al,021h                 ; Get current mask
                 test            al,04h
@@ -157,7 +159,7 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             021h,al                 ; Set new mask
 
-                ; Make sure IRQ8 (RTC) is unmasked
+                ; Make sure IRQ 8 (RTC) is unmasked
                 ; It's needed to drive the MPU timers
 @@IRQ2OK:       in              al,0A1h                 ; Get current mask
                 test            al,01h
@@ -171,3 +173,14 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 
                 ; Chained ISR will have already sent an EOI
                 iret                                    ; Will restore int flag
+
+DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
+
+                pushf
+                cmp             ah,04Bh
+                jne             @@ExitISR2
+                int             03h                     ; Break
+
+
+@@ExitISR2:     popf
+                jmp             OldDOSISR
