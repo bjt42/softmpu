@@ -130,9 +130,30 @@ void PIC_Init(void)
         }
 }
 
-void PIC_Update(void)
+void PIC_Update(bool blocking)
 {
         Bitu i;
+
+        if (blocking)
+        {
+                /* SOFTMPU: Manually time an RTC tick */
+                _asm
+                {
+                                ; Bit 4 of port 061h toggles every 15.085us
+                                mov     cx,17                   ; Assume 4kHz RTC
+                                in      al,061h
+                                and     al,010h                 ; Get initial value
+                                mov     bl,al
+                TestPort:       in      al,061h
+                                and     al,010h
+                                cmp     al,bl
+                                je      TestPort                ; Loop until toggled
+                                xor     bl,010h                 ; Invert
+                                dec     cx
+                                cmp     cx,0
+                                jne     TestPort
+                }
+        }
 
         /* SOFTMPU: Decrement sysex delay used in midi.c */
         if (MIDI_sysex_delay > 0)

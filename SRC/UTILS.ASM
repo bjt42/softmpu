@@ -232,9 +232,8 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
 @@ExitLoop:     ; Restore the interrupt mask
                 pop             bx                      ; Get restore mask
                 pop             dx                      ; Get PIC address
-
                 cmp             es:SBIRQ,9
-                je              @@NoRestore             ; Allow IRQ 9<->2 mapping
+                je              @@RestoreISR            ; Allow IRQ 9<->2 mapping
 
                 pushf
                 cli                                     ; Disable interrupts
@@ -244,7 +243,7 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 out             dx,al                   ; Restore initial enable state
                 popf
 
-@@NoRestore:    ; Don't restore the handler on success
+@@RestoreISR:   ; Don't restore the handler on success
                 pop             ax                      ; Get the interrupt num
                 cmp             es:SBDetected,1         ; Did the detection flag get set?
                 je              @@SBDetected
@@ -278,7 +277,7 @@ DetectRTC:      push            es
                 stc
                 retn                                    ; Failed to detect RTC
 
-InstTimerISR:   ; Install a handler on int 08h (IRQ0/Timer) that makes sure IRQ2 (cascade) & 8 (RTC) remain unmasked
+InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) & 8 (RTC) remain unmasked
                 ; Doesn't matter if the timer frequency is increased by another app later
                 ; Save the existing handler
 		push            es
@@ -296,6 +295,28 @@ InstTimerISR:   ; Install a handler on int 08h (IRQ0/Timer) that makes sure IRQ2
                 mov             ds,bx                   ; Copy es->ds for API call
 		mov             ah,025h                 ; Interrupt num still in al
                 mov             dx,OFFSET TimerIntHandler
+                int             021h                    ; Register new handler
+                pop             ds
+                retn
+
+InstDOSISR:     ; Install a handler on int 21h for exec (4Bh) calls
+                ; This allows us to implement workarounds for specific apps
+                ; Save the existing handler
+		push            es
+                mov             al,021h
+		mov             ah,035h
+		int             021h                    ; Get interrupt vector
+		mov             dx,es
+		pop             es
+                mov             es:OldDOSISRSeg,dx      ; Save segment addr
+                mov             es:OldDOSISRAddr,bx     ; Save handler addr
+
+		; Register the new handler
+                push            ds
+                mov             bx,es
+                mov             ds,bx                   ; Copy es->ds for API call
+		mov             ah,025h                 ; Interrupt num still in al
+                mov             dx,OFFSET DOSIntHandler
                 int             021h                    ; Register new handler
                 pop             ds
                 retn

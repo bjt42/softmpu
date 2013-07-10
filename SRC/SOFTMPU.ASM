@@ -44,6 +44,11 @@
 ;
 ; - Fixed loaded detection
 ;
+; 1.3
+;
+; - Merged latest DOSBox reset delay patch
+; - Fixed "It Came From The Desert"
+;
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init

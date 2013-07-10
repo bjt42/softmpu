@@ -66,8 +66,7 @@ static void MPU401_EOIHandlerDispatch(void);
 #define MPU401_REVISION 0x01
 #define MPU401_QUEUE 32
 #define MPU401_TIMECONSTANT 60000
-/*#define MPU401_RESETBUSY 27*/ /* SOFTMPU: Seems a very long time to make the app wait for reset? */
-#define MPU401_RESETBUSY 0 /* SOFTMPU: Reset immediately otherwise we may hang the app */
+#define MPU401_RESETBUSY 27*(RTCFREQ/1000) /* SOFTMPU */
 
 enum MpuMode { M_UART,M_INTELLIGENT };
 typedef enum MpuMode MpuMode; /* SOFTMPU */
@@ -150,20 +149,34 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	/* SOFTMPU: Reflect hardware DRR */
         _asm
 	{
-			mov     dx,mpu.mpuport
-			inc     dx
-			in      al,dx
-			and     al,040h
-			or      retval,al
+                mov     dx,mpu.mpuport
+                inc     dx
+                in      al,dx
+                and     al,040h
+                or      retval,al
         }
         if (mpu.state.cmd_pending) retval|=0x40;
 	if (!mpu.queue_used) retval|=0x80;
+
+        /* SOFTMPU: Handle spinning on status with interrupts disabled */
+        if (mpu.state.reset)
+        {
+                PIC_Update(true);
+        }
+
 	return retval;
 }
 
 void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 	Bitu i; /* SOFTMPU */
-	if (mpu.state.reset) {mpu.state.cmd_pending=val+1;return;}
+	if (mpu.state.reset) {
+		if (mpu.state.cmd_pending || (val!=0x3f && val!=0xff)) {
+			mpu.state.cmd_pending=val+1;
+			return;
+		}
+		PIC_RemoveEvents(RESET_DONE);
+		mpu.state.reset=false;
+	}
 	if (val<=0x2f) {
 		switch (val&3) { /* MIDI stop, start, continue */
 			case 1: {MIDI_RawOutByte(0xfc);break;}
@@ -285,9 +298,9 @@ void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 			break;
 		case 0xff:      /* Reset MPU-401 */
 			/*LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Reset %X",val);*/ /* SOFTMPU */
-                        mpu.state.reset=true;
-                        PIC_AddEvent(RESET_DONE,MPU401_RESETBUSY);
-                        MPU401_Reset();
+			PIC_AddEvent(RESET_DONE,MPU401_RESETBUSY);
+			mpu.state.reset=true;
+			MPU401_Reset();
 			if (mpu.mode==M_UART) return;//do not send ack in UART mode
 			break;
 		case 0x3f:      /* UART mode */

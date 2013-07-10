@@ -1,11 +1,11 @@
 ----------------------------------------------
-SoftMPU 1.2 by bjt - Software MPU-401 Emulator
+SoftMPU 1.3 by bjt - Software MPU-401 Emulator
 ----------------------------------------------
 Copyright (C) 2013        bjt
 Copyright (C) 2002-2013   The DOSBox Team
 ----------------------------------------------
 
-Release Notes (08/07/13)
+Release Notes (09/07/13)
 
 WHAT IS IT?
 
@@ -49,9 +49,9 @@ Problem:  When using a PS/2 mouse, moving the cursor causes slow playback.
 Solution: Use a mouse driver that supports direct hardware access e.g.
           CuteMouse 2.0 (but not 2.1).
 
-Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ2,
+Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ 2,
           but my sound card doesn't support it.
-Solution: Use IRQ9 instead. This is supported by Yamaha YMF71x sound cards,
+Solution: Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
           maybe others too.
 
 Problem:  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
@@ -59,7 +59,7 @@ Problem:  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
 Solution: Run SoftMPU with the /DELAYSYSEX switch.
 
 Problem:  Music playback stops working after running a specific program.
-Solution: Restart your PC. Programs that reprogram the Real-Time Clock will
+Solution: Restart your PC. Software that reprograms the Real-Time Clock will
           stop SoftMPU from working correctly.
 
 FURTHER INFO
@@ -79,8 +79,8 @@ Run BUILD.BAT to build SOFTMPU.EXE in the current directory.
 
 DISTRIBUTION
 
-SoftMPU is licensed under the GNU General Public License. Please read LICENSE
-for further information.
+SoftMPU is distributed under the GNU General Public License. Please read
+LICENSE for further information.
 
 SPECIAL THANKS
 
