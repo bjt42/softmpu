@@ -297,7 +297,8 @@ Init:           ; Ensure ds=cs
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
-@@NoDelay:      call            InstTimerISR            ; Install the IRQ2/8 watchdog
+@@NoDelay:      call            InstTimerISR            ; Install the IRQ 2/8 watchdog
+                call            InstDOSISR              ; Install the exec handler
                 pop             ds
 		retf                                    ; Return to caller
 
@@ -352,7 +353,7 @@ EMMOK:          ; Ensure ds=cs
 		pushf
 		cli                                     ; No interrupts while programming PIC
 		in              al,0A1h
-		and             al,0FEh                 ; Clear bit 0 = IRQ8 (RTC)
+                and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
 		jmp             SHORT $+2               ; Short pause
 		out             0A1h,al
 		popf                                    ; Start RTC interrupts

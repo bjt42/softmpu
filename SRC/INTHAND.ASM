@@ -20,10 +20,10 @@
 ; SoftMPU by bjt - Software MPU-401 Emulator
 ; ------------------------------------------
 ;
-; RTC, SB DMA and IRQ2/8 Watchdog interrupt handlers
+; RTC, SB DMA and IRQ 2/8 Watchdog interrupt handlers
 ;
 
-IntStackSize    EQU             0200h                   ; 512 byte stack for handler
+IntStackSize    EQU             0100h                   ; 256 byte stack for handler
 IntStack        DB              IntStackSize DUP (?)    ; Declare stack array
 IntSP           EQU             (OFFSET IntStack)+IntStackSize
 
@@ -63,7 +63,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 push            ds
                 mov             ax,SEG _DATA
                 mov             ds,ax
-                INVOKE          PIC_Update
+                INVOKE          PIC_Update,false
                 pop             ds
                 popa
 
@@ -118,6 +118,8 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
                 test            al,01h                  ; 8-bit IRQ flag
                 jz              @@ExitISR               ; Was the interrupt meant for us?
                 mov             SBDetected,1            ; Signal detection success
+                cmp             NoSBEOI,1               ; Do we want to EOI?
+                je              @@ExitISR
 
                 ; Acknowledge interrupt
                 mov             dx,SBPortAddr
@@ -148,7 +150,7 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
                 ; Save scratch registers
                 mov             SavedAX,ax
 
-                ; Make sure IRQ2 (cascade) is unmasked
+                ; Make sure IRQ 2 (cascade) is unmasked
                 ; Some games (e.g. Gateway) disable it, causing problems with PS/2 mice
                 in              al,021h                 ; Get current mask
                 test            al,04h
@@ -157,7 +159,7 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             021h,al                 ; Set new mask
 
-                ; Make sure IRQ8 (RTC) is unmasked
+                ; Make sure IRQ 8 (RTC) is unmasked
                 ; It's needed to drive the MPU timers
 @@IRQ2OK:       in              al,0A1h                 ; Get current mask
                 test            al,01h
@@ -171,3 +173,31 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 
                 ; Chained ISR will have already sent an EOI
                 iret                                    ; Will restore int flag
+
+DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
+
+                ; Check for exec call (4Bh)
+                pushf
+                cmp             ah,04Bh
+                jne             @@ExitISR3
+
+                mov             NoSBEOI,0               ; Reset SB EOI control
+
+                ; Parse filename for app detection substrings
+                push            si
+                push            eax
+                mov             si,dx
+		cld                                     ; Auto increment si
+@@ParseFilename:lodsd                                   ; Get a dword from the filename
+                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
+                je              @@DisableSBEOI
+                sub             si,3                    ; Only step a byte at a time
+                cmp             al,0                    ; Check for null terminator
+                je              @@ExitISR2
+                jmp             @@ParseFilename         ; Next char
+
+@@DisableSBEOI: mov             NoSBEOI,1               ; Don't send SB EOI
+@@ExitISR2:     pop             eax
+                pop             si
+@@ExitISR3:     popf
+                jmp             OldDOSISR

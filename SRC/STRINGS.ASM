@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.2 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU 1.3 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
                 DB              0B3h,'                                              ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013        bjt                 ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013   The DOSBox Team     ',0B3h,0Dh,0Ah
@@ -44,10 +44,10 @@ EMMError        DB              '! Error: Port trap failed. Please submit a bug 
 LoadedError     DB              '! Error: SoftMPU is already loaded',0Dh,0Ah,'$'
 RTCError        DB              '! Error: Real Time Clock support not detected',0Dh,0Ah,'$'
 SBErrorStart    DB              '! Error: Sound Blaster not detected at port ','$'
-SBErrorMid      DB              ' IRQ','$'
+SBErrorMid      DB              ' IRQ ','$'
 SBErrorEnd      DB              0Dh,0Ah,'$'
 SBSuccessStart  DB              0FBh,' Sound Blaster detected at port ','$'
-SBSuccessMid    DB              ' IRQ','$'
+SBSuccessMid    DB              ' IRQ ','$'
 SBSuccessEnd    DB              0Dh,0Ah,'$'
 SBPortNum       DB              '   ','$'
 SBIRQNum        DB              '  ','$'
@@ -58,7 +58,7 @@ MPUSuccessEnd   DB              0Dh,0Ah,'$'
 MPUPortNum      DB              '   ','$'
 DelaysEnabled   DB              'i SYSEX delays enabled',0Dh,0Ah,'$'
 LoadedStart     DB              0Dh,0Ah,0Eh,' SoftMPU active at port ','$'
-LoadedMid       DB              ' IRQ','$'
+LoadedMid       DB              ' IRQ ','$'
 LoadedEnd       DB              0Dh,0Ah,'$'
 HelpText        DB              'Usage: SOFTMPU /SB:nnn /IRQ:nn /MPU:nnn [/DELAYSYSEX]',0Dh,0Ah
                 DB              0Dh,0Ah
