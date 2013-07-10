@@ -40,6 +40,7 @@ SBIRQ           DB              0
 DelaySysex      DB              0
 
 NoVirtualise    DB              1                       ; Port virtualisation control
+NoSBEOI         DB              0                       ; SBISR EOI control
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
@@ -54,7 +55,6 @@ OldDOSISRAddr   DW              ?
 OldDOSISRSeg    DW              ?                       ; Don't reorder these
 
 SBDetected      DB              0
-NoSBEOI         DB              0                       ; SBISR EOI control
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work

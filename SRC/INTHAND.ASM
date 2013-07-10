@@ -176,11 +176,28 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 
 DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
 
+                ; Check for exec call (4Bh)
                 pushf
                 cmp             ah,04Bh
-                jne             @@ExitISR2
-                int             03h                     ; Break
+                jne             @@ExitISR3
 
+                mov             NoSBEOI,0               ; Reset SB EOI control
 
-@@ExitISR2:     popf
+                ; Parse filename for app detection substrings
+                push            si
+                push            eax
+                mov             si,dx
+		cld                                     ; Auto increment si
+@@ParseFilename:lodsd                                   ; Get a dword from the filename
+                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
+                je              @@DisableSBEOI
+                sub             si,3                    ; Only step a byte at a time
+                cmp             al,0                    ; Check for null terminator
+                je              @@ExitISR2
+                jmp             @@ParseFilename         ; Next char
+
+@@DisableSBEOI: mov             NoSBEOI,1               ; Don't send SB EOI
+@@ExitISR2:     pop             eax
+                pop             si
+@@ExitISR3:     popf
                 jmp             OldDOSISR

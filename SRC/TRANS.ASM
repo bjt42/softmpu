@@ -298,7 +298,7 @@ Init:           ; Ensure ds=cs
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
 @@NoDelay:      call            InstTimerISR            ; Install the IRQ 2/8 watchdog
-                call            InstDOSISR              ; Install the load/exec handler
+                call            InstDOSISR              ; Install the exec handler
                 pop             ds
 		retf                                    ; Return to caller
 

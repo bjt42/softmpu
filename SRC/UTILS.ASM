@@ -299,7 +299,7 @@ InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ
                 pop             ds
                 retn
 
-InstDOSISR:     ; Install a handler on int 21h (DOS) that watches for load/exec (4Bh) calls
+InstDOSISR:     ; Install a handler on int 21h for exec (4Bh) calls
                 ; This allows us to implement workarounds for specific apps
                 ; Save the existing handler
 		push            es
