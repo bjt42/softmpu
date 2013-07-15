@@ -191,6 +191,19 @@ Init:           ; Ensure ds=cs
 		mov             SBIRQNum,al
 
 		; Check for EMM386
+                push            ds                      ; Installation checks
+                xor             ax,ax
+                mov             ds,ax
+                mov             ax,ds:[019Ch]
+                or              ax,ds:[019Eh]
+                pop             ds
+                jz              @@NoEMM
+
+                mov             ax,0FFA5h
+                int             067h
+                cmp             ax,0845Ah
+                jne             @@NoEMM
+
                 mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice
                 int             021h                    ; Get handle
