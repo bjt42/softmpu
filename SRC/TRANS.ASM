@@ -297,9 +297,7 @@ Init:           ; Ensure ds=cs
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
-@@NoDelay:      call            InstTimerISR            ; Install the IRQ 2/8 watchdog
-                call            InstDOSISR              ; Install the exec handler
-                pop             ds
+@@NoDelay:      pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs
@@ -311,7 +309,11 @@ EMMOK:          ; Ensure ds=cs
 		inc             eax
 		mov             DWORD PTR es:[si],eax   ; Store complete ID string
 
-		; Set RTC busy flag
+                ; Install support handlers
+                call            InstTimerISR            ; Install the IRQ 2/8 watchdog
+                call            InstDOSISR              ; Install the exec handler
+
+                ; Set RTC busy flag
 		; Disable interrupts until we've replaced the handler
 		pushf
 		cli
@@ -357,7 +359,7 @@ EMMOK:          ; Ensure ds=cs
 		jmp             SHORT $+2               ; Short pause
 		out             0A1h,al
 		popf                                    ; Start RTC interrupts
-		
+
 		; Print success message
 		mov             ah,9
 		mov             dx,OFFSET LoadedStart
@@ -403,6 +405,12 @@ EMMErr:         ; Ensure ds=cs
 		push            ds
 		mov             ax,cs
 		mov             ds,ax
+
+                ; Clean up after ourselves
+                call            ResetMPU                ; Switch back to normal mode
+                call            RestoreSB               ; Remove SB handler
+
+                ; Print an error and exit
 		mov             ah,9
 		mov             dx,OFFSET EMMError
 		int             021h

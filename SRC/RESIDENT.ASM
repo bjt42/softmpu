@@ -84,9 +84,13 @@ Start:          push            es
 		shl             di,4                    ; Calculate offset to resident end
 		mov             ax,04A15h
 		mov             bx,0
+                stc                                     ; Fail by default
 		int             02Fh                    ; Install handler
 		pop             ds                      ; Restore ds
 		jnc             @@InitSoftMPU           ; Init MPU lib
+		push            es
+		mov             ax,cs
+		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
 @@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex
