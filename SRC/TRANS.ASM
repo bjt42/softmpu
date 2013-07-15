@@ -25,6 +25,10 @@
 
 TransientSeg    SEGMENT 'transient'
 
+EMMVersion      LABEL           WORD                    ; EMM386 version buffer
+EMMMajor        DB              02h
+EMMMinor        DB              00h
+
 Init:           ; Ensure ds=cs
 		push            ds
 		mov             ax,cs
@@ -187,18 +191,24 @@ Init:           ; Ensure ds=cs
 		mov             SBIRQNum,al
 
 		; Check for EMM386
-		push            ds
-		xor             ax,ax
-		mov             ds,ax
-		mov             ax,ds:[019Ch]
-		or              ax,ds:[019Eh]
-		pop             ds
-		jz              @@NoEMM
-		mov             ax,0FFA5h
-		int             067h
-		cmp             ax,0845Ah
-		jz              @@FoundEMM
-		
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice
+                int             021h                    ; Get handle
+                jc              @@NoEMM
+
+                mov             bx,ax
+                mov             ax,04402h               ; Get manager version
+                mov             cx,02h
+                mov             dx,OFFSET EMMVersion
+                int             021h
+                mov             ah,03Eh                 ; Close file
+                int             021h
+                cmp             EMMMajor,4              ; Require EMM386 >= 4.46
+                jl              @@NoEMM
+
+                cmp             EMMMinor,45
+                jg              @@FoundEMM
+
 @@NoEMM:        ; EMM386 not present
 		mov             ah,9
 		mov             dx,OFFSET NoEMM
@@ -408,7 +418,7 @@ EMMErr:         ; Ensure ds=cs
 
                 ; Clean up after ourselves
                 call            ResetMPU                ; Switch back to normal mode
-                call            RestoreSB               ; Remove SB handler
+                call            RestoreSBISR            ; Remove SB handler
 
                 ; Print an error and exit
 		mov             ah,9

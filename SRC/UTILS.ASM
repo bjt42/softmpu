@@ -255,14 +255,14 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 cmp             es:SBDetected,1         ; Did the detection flag get set?
                 je              @@SBDetected
 
-                call            RestoreSB               ; Restore the old handler
+                call            RestoreSBISR            ; Restore the old handler
 		stc
 		retn                                    ; Failed to detect SB
 
 @@SBDetected:   clc
 		retn
 
-RestoreSB:      ; Restore the old SB handler
+RestoreSBISR:   ; Restore the old SB handler
                 mov             al,es:SBIRQ             ; Get hardware irq number
 		add             al,8
 		cmp             al,010h
