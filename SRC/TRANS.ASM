@@ -198,18 +198,19 @@ Init:           ; Ensure ds=cs
                 or              ax,ds:[019Eh]
                 pop             ds
                 jz              @@NoEMM
-
                 mov             ax,0FFA5h
                 int             067h
                 cmp             ax,0845Ah
                 jne             @@NoEMM
-
                 mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice
                 int             021h                    ; Get handle
+                jnc             @@CheckVersion
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice2
+                int             021h                    ; Get handle
                 jc              @@NoEMM
-
-                mov             bx,ax
+@@CheckVersion: mov             bx,ax
                 mov             ax,04402h               ; Get manager version
                 mov             cx,02h
                 mov             dx,OFFSET EMMVersion
@@ -218,7 +219,6 @@ Init:           ; Ensure ds=cs
                 int             021h
                 cmp             EMMMajor,4              ; Require EMM386 >= 4.46
                 jl              @@NoEMM
-
                 cmp             EMMMinor,45
                 jg              @@FoundEMM
 
@@ -406,7 +406,7 @@ EMMOK:          ; Ensure ds=cs
 		mov             ah,049h
 		int             021h                    ; Deallocate environment
 		pop             es
-                mov             es:NoVirtualise,0       ; Enable port virtualisation
+                mov             es:VirtualisePorts,1    ; Enable port virtualisation
 		mov             ah,031h
                 mov             dx,SEG STACK            ; Int handlers have their own stack
 		sub             dx,bx                   ; Calc resident size from PSP in para

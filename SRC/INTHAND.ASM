@@ -20,7 +20,7 @@
 ; SoftMPU by bjt - Software MPU-401 Emulator
 ; ------------------------------------------
 ;
-; RTC, SB DMA and IRQ 2/8 Watchdog interrupt handlers
+; RTC, SB DMA, DOS exec and IRQ watchdog interrupt handlers
 ;
 
 IntStackSize    EQU             0100h                   ; 256 byte stack for handler
@@ -54,7 +54,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 mov             sp,ax
 
                 ; Disable virtualised port access
-                mov             NoVirtualise,1
+                mov             VirtualisePorts,0
                 
                 ; Handle timer tick
                 ; MPU lib has been initialised
@@ -68,7 +68,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 popa
 
                 ; Enable virtualised port access
-                mov             NoVirtualise,0
+                mov             VirtualisePorts,1
                 
                 ; Interrupts are still disabled
                 ; Read status register C to clear pending interrupt
@@ -176,11 +176,12 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 
 DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Check for exec call (4Bh)
+                ; Check for exec call (AH=04Bh,AL=00h)
                 pushf
                 cmp             ah,04Bh
                 jne             @@ExitISR3
-
+                cmp             al,0
+                jne             @@ExitISR3
                 mov             NoSBEOI,0               ; Reset SB EOI control
 
                 ; Parse filename for app detection substrings
@@ -195,7 +196,6 @@ DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via 
                 cmp             al,0                    ; Check for null terminator
                 je              @@ExitISR2
                 jmp             @@ParseFilename         ; Next char
-
 @@DisableSBEOI: mov             NoSBEOI,1               ; Don't send SB EOI
 @@ExitISR2:     pop             eax
                 pop             si

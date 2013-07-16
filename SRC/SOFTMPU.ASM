@@ -52,6 +52,7 @@
 ; 1.4
 ;
 ; - Improved EMM386 detection
+; - Automatic IRQ generation enable/disable
 ;
 ; ------------------------------------------
 

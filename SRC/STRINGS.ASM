@@ -67,3 +67,4 @@ HelpText        DB              'Usage: SOFTMPU /SB:nnn /IRQ:nn /MPU:nnn [/DELAY
                 DB              '  /MPU:nnn      MPU-401 base I/O port address (220-350)',0Dh,0Ah
                 DB              '  /DELAYSYSEX   Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah,'$'
 EMMDevice       DB              'EMMXXXX0',00h
+EMMDevice2      DB              'EMMQXXX0',00h

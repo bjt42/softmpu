@@ -242,7 +242,6 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 pop             dx                      ; Get PIC address
                 cmp             es:SBIRQ,9
                 je              @@RestoreISR            ; Allow IRQ 9<->2 mapping
-
                 pushf
                 cli                                     ; Disable interrupts
                 in              al,dx
@@ -254,7 +253,6 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
 @@RestoreISR:   ; Don't restore the handler on success
                 cmp             es:SBDetected,1         ; Did the detection flag get set?
                 je              @@SBDetected
-
                 call            RestoreSBISR            ; Restore the old handler
 		stc
 		retn                                    ; Failed to detect SB

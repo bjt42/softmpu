@@ -39,7 +39,7 @@ SBPortAddr      DW              0
 SBIRQ           DB              0
 DelaySysex      DB              0
 
-NoVirtualise    DB              1                       ; Port virtualisation control
+VirtualisePorts DB              0                       ; Port virtualisation control
 NoSBEOI         DB              0                       ; SBISR EOI control
 
 OldSBISR        LABEL           DWORD
