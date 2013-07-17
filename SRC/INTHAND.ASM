@@ -100,9 +100,15 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
 
 SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Ensure interrupts are disabled, in case something's chained us
+                ; Early out if required
                 pushf
-                cli
+                cmp             IRQGeneration,1
+                je              @@SBIntHandler2
+                popf
+                jmp             OldSBISR
+
+                ; Ensure interrupts are disabled, in case something's chained us
+@@SBIntHandler2:cli
 
                 ; Save scratch registers
                 mov             SavedAX,ax
@@ -118,7 +124,7 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
                 test            al,01h                  ; 8-bit IRQ flag
                 jz              @@ExitISR               ; Was the interrupt meant for us?
                 mov             SBDetected,1            ; Signal detection success
-                cmp             NoSBEOI,1               ; Do we want to EOI?
+                cmp             SBEOI,0                 ; Do we want to EOI?
                 je              @@ExitISR
 
                 ; Acknowledge interrupt
@@ -159,12 +165,14 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             021h,al                 ; Set new mask
 
-                ; Make sure IRQ 8 (RTC) is unmasked
+                ; Make sure IRQ 8 (RTC) is set correctly
                 ; It's needed to drive the MPU timers
 @@IRQ2OK:       in              al,0A1h                 ; Get current mask
-                test            al,01h
-                jz              @@IRQ8OK
-                and             al,0FEh
+                xor             al,01h                  ; Invert
+                mov             ah,al
+                and             ah,01h
+                cmp             ah,IRQGeneration        ; Is it set correctly?
+                je              @@IRQ8OK
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             0A1h,al                 ; Set new mask
 
@@ -176,13 +184,19 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 
 DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Check for exec call (AH=04Bh,AL=00h)
+                ; Disable interrupts to keep setting changes atomic
                 pushf
+                cli
+
+                ; Check for exec call (AH=04Bh,AL=00h)
                 cmp             ah,04Bh
                 jne             @@ExitISR3
                 cmp             al,0
                 jne             @@ExitISR3
-                mov             NoSBEOI,0               ; Reset SB EOI control
+
+                ; Default settings
+                mov             SBEOI,1                 ; Reset SB EOI control
+                mov             IRQGeneration,0         ; Reset IRQ generation control
 
                 ; Parse filename for app detection substrings
                 push            si
@@ -190,14 +204,44 @@ DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via 
                 mov             si,dx
 		cld                                     ; Auto increment si
 @@ParseFilename:lodsd                                   ; Get a dword from the filename
-                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
-                je              @@DisableSBEOI
-                sub             si,3                    ; Only step a byte at a time
                 cmp             al,0                    ; Check for null terminator
                 je              @@ExitISR2
+
+                ; Should we disable EOI?
+                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
+                je              @@DisableSBEOI
+                jmp             @@CheckIRQGen
+@@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
+
+                ; Should we enable IRQ generation?
+@@CheckIRQGen:  cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
+                je              @@EnableIRQGen
+                cmp             eax,'.RES'              ; Laser Squad
+                je              @@EnableIRQGen
+                cmp             eax,'.ETA'              ; Gateway
+                je              @@EnableIRQGen
+                jmp             @@NextChar
+@@EnableIRQGen: mov             IRQGeneration,1         ; Generate MPU interrupts
+@@NextChar:     sub             si,3                    ; Only step a byte at a time
                 jmp             @@ParseFilename         ; Next char
-@@DisableSBEOI: mov             NoSBEOI,1               ; Don't send SB EOI
-@@ExitISR2:     pop             eax
+@@ExitISR2:     pop             eax                     ; Finished parsing
                 pop             si
+
+                ; Now commit our changes
+                pusha
+                push            ds
+                mov             ax,SEG _DATA
+                mov             ds,ax
+                INVOKE          MPU401_SetEnableIRQGeneration,IRQGeneration
+                pop             ds
+
+                ; Enable/disable RTC interrupts as requested
+                ; Interrupts are still disabled
+                in              al,0A1h                 ; Get current mask
+                and             al,0FEh
+                or              al,IRQGeneration
+		jmp             SHORT $+2               ; Enforce short pause between read & write
+                out             0A1h,al                 ; Set new mask
+                popa
 @@ExitISR3:     popf
                 jmp             OldDOSISR

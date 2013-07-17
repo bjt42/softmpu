@@ -40,7 +40,8 @@ SBIRQ           DB              0
 DelaySysex      DB              0
 
 VirtualisePorts DB              0                       ; Port virtualisation control
-NoSBEOI         DB              0                       ; SBISR EOI control
+IRQGeneration   DB              1                       ; SB IRQ generation control
+SBEOI           DB              1                       ; SB ISR EOI control
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
@@ -58,7 +59,7 @@ SBDetected      DB              0
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work
-IDPad           DB              0 DUP (?)
+IDPad           DB              3 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
                 INCLUDE         inthand.asm             ; Interrupt handlers

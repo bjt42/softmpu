@@ -119,6 +119,22 @@ void PIC_RemoveEvents(EventID event)
         event_countdown[event]=0;
 }
 
+/* SOFTMPU: Run all pending events */
+void PIC_FlushAllEvents(void)
+{
+        Bitu i;
+
+        for (i=0;i<NUM_EVENTS;i++)
+        {
+                if (event_countdown[i] > 0)
+                {
+                        event_countdown[i]=1;
+                }
+        }
+
+        PIC_Update(false);
+}
+
 void PIC_Init(void)
 {
         Bitu i;
