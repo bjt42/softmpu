@@ -51,7 +51,6 @@ void PIC_DeActivateIRQ(Bitu sbport); /* SOFTMPU */
 void PIC_SetIRQMask(Bitu irq,bool masked);
 void PIC_AddEvent(EventID event,Bitu delay);
 void PIC_RemoveEvents(EventID event);
-void PIC_FlushAllEvents(void);
 
 void MIDI_Init(Bitu mpuport,bool delaysysex);
 void MIDI_RawOutByte(Bit8u data);
@@ -300,8 +299,8 @@ void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 			break;
 		case 0xff:      /* Reset MPU-401 */
 			/*LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Reset %X",val);*/ /* SOFTMPU */
+                        PIC_AddEvent(RESET_DONE,MPU401_RESETBUSY);
 			mpu.state.reset=true;
-                        PIC_AddEvent(RESET_DONE,mpu.generate_irqs?MPU401_RESETBUSY:0); /* SOFTMPU */
 			MPU401_Reset();
 			if (mpu.mode==M_UART) return;//do not send ack in UART mode
 			break;
@@ -605,7 +604,7 @@ next_event:
 static void MPU401_EOIHandlerDispatch(void) {
 	if (mpu.state.send_now) {
 		mpu.state.eoi_scheduled=true;
-                PIC_AddEvent(EOI_HANDLER,mpu.generate_irqs?1:0); // Possible a bit longer
+                PIC_AddEvent(EOI_HANDLER,1); // Possible a bit longer
 	}
 	else if (!mpu.state.eoi_scheduled) MPU401_EOIHandler();
 }
@@ -672,20 +671,13 @@ static void MPU401_Reset(void) {
 	for (i=0;i<8;i++) {mpu.playbuf[i].type=T_OVERFLOW;mpu.playbuf[i].counter=0;}
 }
 
-/* SOFTMPU: Enable/disable IRQ generation */
-void MPU401_SetEnableIRQGeneration(bool enable)
+/* SOFTMPU: Enable/disable SB IRQ generation */
+void MPU401_SetEnableSBIRQ(bool enable)
 {
         if (mpu.generate_irqs && !enable)
         {
-                mpu.generate_irqs=false;
-
                 // Acknowledge any waiting IRQ
                 PIC_DeActivateIRQ(mpu.sbport);
-
-                // Flush all pending events
-                PIC_FlushAllEvents();
-
-                return;
         }
 
         mpu.generate_irqs=enable;
@@ -706,7 +698,7 @@ void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex)
 	mpu.mode=M_UART;
 	mpu.sbport=sbport;
 	mpu.mpuport=mpuport;
-        mpu.generate_irqs=false; /* SOFTMPU */
+        mpu.generate_irqs=true; /* SOFTMPU */
 
         mpu.intelligent=true; /* Default is on */
 	if (!mpu.intelligent) return;

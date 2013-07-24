@@ -51,8 +51,8 @@
 ;
 ; 1.4
 ;
+; - Fixed games with digital FX
 ; - Improved EMM386 detection
-; - Automatic IRQ generation enable/disable
 ;
 ; ------------------------------------------
 

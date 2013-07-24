@@ -102,7 +102,7 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
 
                 ; Early out if required
                 pushf
-                cmp             IRQGeneration,1
+                cmp             SBIRQGen,1
                 je              @@SBIntHandler2
                 popf
                 jmp             OldSBISR
@@ -165,42 +165,32 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             021h,al                 ; Set new mask
 
-                ; Make sure IRQ 8 (RTC) is set correctly
-                ; It's needed to drive the MPU timers
-@@IRQ2OK:       in              al,0A1h                 ; Get current mask
-                xor             al,01h                  ; Invert
-                mov             ah,al
-                and             ah,01h
-                cmp             ah,IRQGeneration        ; Is it set correctly?
-                je              @@IRQ8OK
-		jmp             SHORT $+2               ; Enforce short pause between read & write
-                out             0A1h,al                 ; Set new mask
-
                 ; Restore scratch registers
-@@IRQ8OK:       mov             ax,SavedAX
+@@IRQ2OK:       mov             ax,SavedAX
 
                 ; Chained ISR will have already sent an EOI
                 iret                                    ; Will restore int flag
 
 DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Disable interrupts to keep setting changes atomic
-                pushf
-                cli
-
                 ; Check for exec call (AH=04Bh,AL=00h)
+                pushf
                 cmp             ah,04Bh
                 jne             @@ExitISR3
                 cmp             al,0
                 jne             @@ExitISR3
 
+                ; Disable interrupts to keep setting changes atomic
+                cli
+
                 ; Default settings
-                mov             SBEOI,1                 ; Reset SB EOI control
-                mov             IRQGeneration,0         ; Reset IRQ generation control
+                mov             SBEOI,1                 ; Enable SB EOI
+                mov             SBIRQGen,1              ; Enable SB IRQ generation
 
                 ; Parse filename for app detection substrings
                 push            si
                 push            eax
+                push            ebx
                 mov             si,dx
 		cld                                     ; Auto increment si
 @@ParseFilename:lodsd                                   ; Get a dword from the filename
@@ -213,18 +203,27 @@ DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via 
                 jmp             @@CheckIRQGen
 @@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
 
-                ; Should we enable IRQ generation?
-@@CheckIRQGen:  cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
-                je              @@EnableIRQGen
-                cmp             eax,'.RES'              ; Laser Squad
-                je              @@EnableIRQGen
-                cmp             eax,'.ETA'              ; Gateway
-                je              @@EnableIRQGen
-                jmp             @@NextChar
-@@EnableIRQGen: mov             IRQGeneration,1         ; Generate MPU interrupts
-@@NextChar:     sub             si,3                    ; Only step a byte at a time
+@@CheckIRQGen:  ; Should we disable SB IRQ generation?
+                push            ds
+                push            si
+                mov             ebx,eax                 ; Save comparison string
+                mov             ax,cs
+                mov             ds,ax                   ; Copy cs->ds for data access
+                mov             si,OFFSET AppIDStrings
+@@ParseAppStrings:
+                lodsd                                   ; Get an ID string
+                cmp             al,0                    ; Check for null terminator
+                je              @@NextChar
+                cmp             eax,ebx
+                je              @@DisableIRQGen         ; Found a match
+                jmp             @@ParseAppStrings
+@@DisableIRQGen:mov             SBIRQGen,0              ; Disable SB interrupts
+@@NextChar:     pop             si
+                pop             ds
+                sub             si,3                    ; Only step a byte at a time
                 jmp             @@ParseFilename         ; Next char
-@@ExitISR2:     pop             eax                     ; Finished parsing
+@@ExitISR2:     pop             ebx                     
+                pop             eax                     ; Finished parsing
                 pop             si
 
                 ; Now commit our changes
@@ -232,16 +231,8 @@ DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via 
                 push            ds
                 mov             ax,SEG _DATA
                 mov             ds,ax
-                INVOKE          MPU401_SetEnableIRQGeneration,IRQGeneration
+                INVOKE          MPU401_SetEnableSBIRQ,SBIRQGen
                 pop             ds
-
-                ; Enable/disable RTC interrupts as requested
-                ; Interrupts are still disabled
-                in              al,0A1h                 ; Get current mask
-                and             al,0FEh
-                or              al,IRQGeneration
-		jmp             SHORT $+2               ; Enforce short pause between read & write
-                out             0A1h,al                 ; Set new mask
                 popa
 @@ExitISR3:     popf
                 jmp             OldDOSISR

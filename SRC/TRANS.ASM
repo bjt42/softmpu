@@ -357,15 +357,6 @@ EMMOK:          ; Ensure ds=cs
 		pop             ds
 		popf                                    ; Enable interrupts
 
-                ; Disable RTC interrupts by default
-                pushf
-                cli                                     ; No interrupts while programming PIC
-                in              al,0A1h
-                and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
-                jmp             SHORT $+2
-                out             0A1h,al
-                popf
-
 		; Initialise the RTC
 		mov             al,0Bh                  ; Read status reg B
 		call            ReadRTC
@@ -382,6 +373,15 @@ EMMOK:          ; Ensure ds=cs
 		shl             ax,8
 		mov             al,0Ah
 		call            WriteRTC
+
+                ; Enable RTC interrupts
+                pushf
+                cli                                     ; No interrupts while programming PIC
+                in              al,0A1h
+                and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
+                jmp             SHORT $+2               ; Short pause
+                out             0A1h,al
+                popf                                    ; Start RTC interrupts
 
 		; Print success message
 		mov             ah,9
@@ -407,7 +407,6 @@ EMMOK:          ; Ensure ds=cs
 		int             021h                    ; Deallocate environment
 		pop             es
                 mov             es:VirtualisePorts,1    ; Enable port virtualisation
-                mov             es:IRQGeneration,0      ; Disable SB IRQ generation
 		mov             ah,031h
                 mov             dx,SEG STACK            ; Int handlers have their own stack
 		sub             dx,bx                   ; Calc resident size from PSP in para

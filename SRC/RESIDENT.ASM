@@ -40,8 +40,8 @@ SBIRQ           DB              0
 DelaySysex      DB              0
 
 VirtualisePorts DB              0                       ; Port virtualisation control
-IRQGeneration   DB              1                       ; SB IRQ generation control
 SBEOI           DB              1                       ; SB ISR EOI control
+SBIRQGen        DB              1                       ; SB IRQ generation control
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
@@ -62,6 +62,7 @@ SBDetected      DB              0
 IDPad           DB              3 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
+                INCLUDE         appstr.asm              ; App ID substrings
                 INCLUDE         inthand.asm             ; Interrupt handlers
 		INCLUDE         porthand.asm            ; Port handler code
 
