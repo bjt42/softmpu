@@ -87,6 +87,7 @@ typedef enum MpuDataType MpuDataType; /* SOFTMPU */
 
 static struct {
 	bool intelligent;
+        bool generate_irqs; /* SOFTMPU */
 	MpuMode mode;
 	Bitu sbport;
 	Bitu mpuport;
@@ -125,7 +126,7 @@ static struct {
 
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
-	if (mpu.queue_used==0 && mpu.intelligent) {
+        if (mpu.queue_used==0 && mpu.intelligent && mpu.generate_irqs) {
 		mpu.state.irq_pending=true;
 		PIC_ActivateIRQ(mpu.sbport); /* SOFTMPU */
 	}
@@ -298,7 +299,7 @@ void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 			break;
 		case 0xff:      /* Reset MPU-401 */
 			/*LOG(LOG_MISC,LOG_NORMAL)("MPU-401:Reset %X",val);*/ /* SOFTMPU */
-			PIC_AddEvent(RESET_DONE,MPU401_RESETBUSY);
+                        PIC_AddEvent(RESET_DONE,MPU401_RESETBUSY);
 			mpu.state.reset=true;
 			MPU401_Reset();
 			if (mpu.mode==M_UART) return;//do not send ack in UART mode
@@ -323,7 +324,7 @@ Bitu MPU401_ReadData(void) { /* SOFTMPU */
 	}
 	if (!mpu.intelligent) return ret;
 
-	if (mpu.queue_used == 0) PIC_DeActivateIRQ(mpu.sbport); /* SOFTMPU */
+        if ((mpu.queue_used == 0) && mpu.generate_irqs) PIC_DeActivateIRQ(mpu.sbport); /* SOFTMPU */
 
 	if (ret>=0xf0 && ret<=0xf7) { /* MIDI data request */
 		mpu.state.channel=ret&7;
@@ -670,6 +671,18 @@ static void MPU401_Reset(void) {
 	for (i=0;i<8;i++) {mpu.playbuf[i].type=T_OVERFLOW;mpu.playbuf[i].counter=0;}
 }
 
+/* SOFTMPU: Enable/disable SB IRQ generation */
+void MPU401_SetEnableSBIRQ(bool enable)
+{
+        if (mpu.generate_irqs && !enable)
+        {
+                // Acknowledge any waiting IRQ
+                PIC_DeActivateIRQ(mpu.sbport);
+        }
+
+        mpu.generate_irqs=enable;
+}
+
 /* SOFTMPU: Initialisation */
 void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex)
 {
@@ -685,8 +698,9 @@ void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex)
 	mpu.mode=M_UART;
 	mpu.sbport=sbport;
 	mpu.mpuport=mpuport;
+        mpu.generate_irqs=true; /* SOFTMPU */
 
-	mpu.intelligent = true; /* Default is on */
+        mpu.intelligent=true; /* Default is on */
 	if (!mpu.intelligent) return;
 
         /* SOFTMPU: Moved IRQ 9 handler init to asm */

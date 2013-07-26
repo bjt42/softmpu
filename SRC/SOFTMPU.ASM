@@ -49,6 +49,11 @@
 ; - Merged latest DOSBox reset delay patch
 ; - Fixed "It Came From The Desert"
 ;
+; 1.4
+;
+; - Fixed games with digital FX
+; - Improved EMM386 detection
+;
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init

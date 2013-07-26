@@ -129,19 +129,8 @@ WaitForDRR:     mov             LoopCounter,0FFFFh
 @@DRRClear:     clc
 		retn                                    ; OK to send
 
-SwitchToUART:   call            TrySetDSR               ; Clear pending data
-		jc              @@SwitchFailed
-@@TryReset:     call            WaitForDRR              ; OK to send?
-		jc              @@SwitchFailed
-		mov             dx,es:MPUCmdPortAddr
-		mov             al,0FFh
-		out             dx,al                   ; Send reset cmd
-		call            WaitForDSR
-		jc              @@ResetFailed           ; No ACK
-		mov             dx,es:MPUDataPortAddr
-		in              al,dx
-		cmp             al,0FEh
-		jne             @@ResetFailed           ; No ACK
+SwitchToUART:   call            ResetMPU                ; Ensure we're in a sane state
+                jc              @@SwitchFailed
 		call            TrySetDSR               ; Clear pending data
 		jc              @@SwitchFailed
 		call            WaitForDRR              ; OK to send?
@@ -158,12 +147,32 @@ SwitchToUART:   call            TrySetDSR               ; Clear pending data
 		clc
 		retn                                    ; Now in UART mode
 
-@@ResetFailed:  mov             al,SecondReset
-		inc             SecondReset
-		cmp             al,0                    ; Maybe we were already in UART mode
-		je              @@TryReset
 @@SwitchFailed: stc
 		retn                                    ; Can't switch to UART
+
+ResetMPU:       mov             SecondReset,0
+                call            TrySetDSR               ; Clear pending data
+                jc              @@ResetFailed2
+@@TryReset:     call            WaitForDRR              ; OK to send?
+                jc              @@ResetFailed2
+		mov             dx,es:MPUCmdPortAddr
+		mov             al,0FFh
+		out             dx,al                   ; Send reset cmd
+		call            WaitForDSR
+		jc              @@ResetFailed           ; No ACK
+		mov             dx,es:MPUDataPortAddr
+		in              al,dx
+		cmp             al,0FEh
+		jne             @@ResetFailed           ; No ACK
+		clc
+                retn                                    ; Now in normal mode
+
+@@ResetFailed:  mov             al,SecondReset
+		inc             SecondReset
+                cmp             al,0                    ; Maybe we were in UART mode
+		je              @@TryReset
+@@ResetFailed2: stc
+                retn                                    ; Failed to reset
 
 DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 mov             al,es:SBIRQ             ; Get hardware irq number
@@ -171,9 +180,8 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
 		cmp             al,010h
 		jl              @@FirstPIC2
 		add             al,060h                 ; Interrupt is on the secondary PIC
-@@FirstPIC2:    push            ax                      ; Save software int number
 
-                ; Save the existing handler
+@@FirstPIC2:    ; Save the existing handler
 		push            es
 		mov             ah,035h
 		int             021h                    ; Get interrupt vector
@@ -234,7 +242,6 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 pop             dx                      ; Get PIC address
                 cmp             es:SBIRQ,9
                 je              @@RestoreISR            ; Allow IRQ 9<->2 mapping
-
                 pushf
                 cli                                     ; Disable interrupts
                 in              al,dx
@@ -244,22 +251,28 @@ DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
                 popf
 
 @@RestoreISR:   ; Don't restore the handler on success
-                pop             ax                      ; Get the interrupt num
                 cmp             es:SBDetected,1         ; Did the detection flag get set?
                 je              @@SBDetected
-
-                ; Restore the old handler
-                mov             ah,025h                 ; Interrupt num in al
-                push            ds
-                mov             ds,es:OldSBISRSeg
-                mov             dx,es:OldSBISRAddr
-                int             021h                    ; Register old handler
-                pop             ds
+                call            RestoreSBISR            ; Restore the old handler
 		stc
 		retn                                    ; Failed to detect SB
 
 @@SBDetected:   clc
 		retn
+
+RestoreSBISR:   ; Restore the old SB handler
+                mov             al,es:SBIRQ             ; Get hardware irq number
+		add             al,8
+		cmp             al,010h
+                jl              @@FirstPIC5
+		add             al,060h                 ; Interrupt is on the secondary PIC
+@@FirstPIC5:    mov             ah,025h
+                push            ds
+                mov             ds,es:OldSBISRSeg
+                mov             dx,es:OldSBISRAddr
+                int             021h                    ; Register old handler
+                pop             ds
+                retn
 
 DetectRTC:      push            es
                 mov             ah,0C0h

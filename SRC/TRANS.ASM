@@ -25,6 +25,10 @@
 
 TransientSeg    SEGMENT 'transient'
 
+EMMVersion      LABEL           WORD                    ; EMM386 version buffer
+EMMMajor        DB              02h
+EMMMinor        DB              00h
+
 Init:           ; Ensure ds=cs
 		push            ds
 		mov             ax,cs
@@ -187,18 +191,37 @@ Init:           ; Ensure ds=cs
 		mov             SBIRQNum,al
 
 		; Check for EMM386
-		push            ds
-		xor             ax,ax
-		mov             ds,ax
-		mov             ax,ds:[019Ch]
-		or              ax,ds:[019Eh]
-		pop             ds
-		jz              @@NoEMM
-		mov             ax,0FFA5h
-		int             067h
-		cmp             ax,0845Ah
-		jz              @@FoundEMM
-		
+                push            ds                      ; Installation checks
+                xor             ax,ax
+                mov             ds,ax
+                mov             ax,ds:[019Ch]
+                or              ax,ds:[019Eh]
+                pop             ds
+                jz              @@NoEMM
+                mov             ax,0FFA5h
+                int             067h
+                cmp             ax,0845Ah
+                jne             @@NoEMM
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice
+                int             021h                    ; Get handle
+                jnc             @@CheckVersion
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice2
+                int             021h                    ; Get handle
+                jc              @@NoEMM
+@@CheckVersion: mov             bx,ax
+                mov             ax,04402h               ; Get manager version
+                mov             cx,02h
+                mov             dx,OFFSET EMMVersion
+                int             021h
+                mov             ah,03Eh                 ; Close file
+                int             021h
+                cmp             EMMMajor,4              ; Require EMM386 >= 4.46
+                jl              @@NoEMM
+                cmp             EMMMinor,45
+                jg              @@FoundEMM
+
 @@NoEMM:        ; EMM386 not present
 		mov             ah,9
 		mov             dx,OFFSET NoEMM
@@ -297,9 +320,7 @@ Init:           ; Ensure ds=cs
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
-@@NoDelay:      call            InstTimerISR            ; Install the IRQ 2/8 watchdog
-                call            InstDOSISR              ; Install the exec handler
-                pop             ds
+@@NoDelay:      pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs
@@ -311,7 +332,11 @@ EMMOK:          ; Ensure ds=cs
 		inc             eax
 		mov             DWORD PTR es:[si],eax   ; Store complete ID string
 
-		; Set RTC busy flag
+                ; Install support handlers
+                call            InstTimerISR            ; Install the IRQ 2/8 watchdog
+                call            InstDOSISR              ; Install the exec handler
+
+                ; Set RTC busy flag
 		; Disable interrupts until we've replaced the handler
 		pushf
 		cli
@@ -349,15 +374,15 @@ EMMOK:          ; Ensure ds=cs
 		mov             al,0Ah
 		call            WriteRTC
 
-		; Enable RTC interrupts
-		pushf
-		cli                                     ; No interrupts while programming PIC
-		in              al,0A1h
+                ; Enable RTC interrupts
+                pushf
+                cli                                     ; No interrupts while programming PIC
+                in              al,0A1h
                 and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
-		jmp             SHORT $+2               ; Short pause
-		out             0A1h,al
-		popf                                    ; Start RTC interrupts
-		
+                jmp             SHORT $+2               ; Short pause
+                out             0A1h,al
+                popf                                    ; Start RTC interrupts
+
 		; Print success message
 		mov             ah,9
 		mov             dx,OFFSET LoadedStart
@@ -381,7 +406,7 @@ EMMOK:          ; Ensure ds=cs
 		mov             ah,049h
 		int             021h                    ; Deallocate environment
 		pop             es
-                mov             es:NoVirtualise,0       ; Enable port virtualisation
+                mov             es:VirtualisePorts,1    ; Enable port virtualisation
 		mov             ah,031h
                 mov             dx,SEG STACK            ; Int handlers have their own stack
 		sub             dx,bx                   ; Calc resident size from PSP in para
@@ -403,6 +428,12 @@ EMMErr:         ; Ensure ds=cs
 		push            ds
 		mov             ax,cs
 		mov             ds,ax
+
+                ; Clean up after ourselves
+                call            ResetMPU                ; Switch back to normal mode
+                call            RestoreSBISR            ; Remove SB handler
+
+                ; Print an error and exit
 		mov             ah,9
 		mov             dx,OFFSET EMMError
 		int             021h

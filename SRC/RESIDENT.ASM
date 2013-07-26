@@ -39,8 +39,9 @@ SBPortAddr      DW              0
 SBIRQ           DB              0
 DelaySysex      DB              0
 
-NoVirtualise    DB              1                       ; Port virtualisation control
-NoSBEOI         DB              0                       ; SBISR EOI control
+VirtualisePorts DB              0                       ; Port virtualisation control
+SBEOI           DB              1                       ; SB ISR EOI control
+SBIRQGen        DB              1                       ; SB IRQ generation control
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
@@ -58,9 +59,10 @@ SBDetected      DB              0
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work
-IDPad           DB              0 DUP (?)
+IDPad           DB              3 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
+                INCLUDE         appstr.asm              ; App ID substrings
                 INCLUDE         inthand.asm             ; Interrupt handlers
 		INCLUDE         porthand.asm            ; Port handler code
 
@@ -84,9 +86,13 @@ Start:          push            es
 		shl             di,4                    ; Calculate offset to resident end
 		mov             ax,04A15h
 		mov             bx,0
+                stc                                     ; Fail by default
 		int             02Fh                    ; Install handler
 		pop             ds                      ; Restore ds
 		jnc             @@InitSoftMPU           ; Init MPU lib
+		push            es
+		mov             ax,cs
+		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
 @@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex
