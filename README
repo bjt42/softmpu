@@ -1,11 +1,11 @@
 ----------------------------------------------
-SoftMPU 1.3 by bjt - Software MPU-401 Emulator
+SoftMPU 1.4 by bjt - Software MPU-401 Emulator
 ----------------------------------------------
 Copyright (C) 2013        bjt
 Copyright (C) 2002-2013   The DOSBox Team
 ----------------------------------------------
 
-Release Notes (09/07/13)
+Release Notes (26/07/13)
 
 WHAT IS IT?
 
@@ -24,7 +24,7 @@ work with the basic MPU interface found on sound cards.
 
 REQUIREMENTS
 
-- MS-DOS 6.0 or later. SoftMPU will not work from within Windows
+- MS-DOS 6.2 or later. SoftMPU will not work from within Windows
 - EMM386 must be loaded
 - Sound Blaster (or compatible) sound card with an MPU-401 interface
   supporting UART mode (e.g. Sound Blaster 16/AWE, Yamaha YMF71x)

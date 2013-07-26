@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.3 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU 1.4 by bjt ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
                 DB              0B3h,'                                              ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013        bjt                 ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013   The DOSBox Team     ',0B3h,0Dh,0Ah
@@ -39,7 +39,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0D9h,0Dh,0Ah,'$'
-NoEMM           DB              '! Error: EMM386 is not available',0Dh,0Ah,'$'
+NoEMM           DB              '! Error: EMM386 4.46 (or later) is not available',0Dh,0Ah,'$'
 EMMError        DB              '! Error: Port trap failed. Please submit a bug report',0Dh,0Ah,'$'
 LoadedError     DB              '! Error: SoftMPU is already loaded',0Dh,0Ah,'$'
 RTCError        DB              '! Error: Real Time Clock support not detected',0Dh,0Ah,'$'
@@ -66,3 +66,5 @@ HelpText        DB              'Usage: SOFTMPU /SB:nnn /IRQ:nn /MPU:nnn [/DELAY
                 DB              '  /IRQ:nn       Sound Blaster interrupt (2-11)',0Dh,0Ah
                 DB              '  /MPU:nnn      MPU-401 base I/O port address (220-350)',0Dh,0Ah
                 DB              '  /DELAYSYSEX   Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah,'$'
+EMMDevice       DB              'EMMXXXX0',00h
+EMMDevice2      DB              'EMMQXXX0',00h

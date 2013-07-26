@@ -20,7 +20,7 @@
 ; SoftMPU by bjt - Software MPU-401 Emulator
 ; ------------------------------------------
 ;
-; RTC, SB DMA and IRQ 2/8 Watchdog interrupt handlers
+; RTC, SB DMA, DOS exec and IRQ watchdog interrupt handlers
 ;
 
 IntStackSize    EQU             0100h                   ; 256 byte stack for handler
@@ -54,7 +54,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 mov             sp,ax
 
                 ; Disable virtualised port access
-                mov             NoVirtualise,1
+                mov             VirtualisePorts,0
                 
                 ; Handle timer tick
                 ; MPU lib has been initialised
@@ -68,7 +68,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 popa
 
                 ; Enable virtualised port access
-                mov             NoVirtualise,0
+                mov             VirtualisePorts,1
                 
                 ; Interrupts are still disabled
                 ; Read status register C to clear pending interrupt
@@ -100,9 +100,15 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
 
 SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Ensure interrupts are disabled, in case something's chained us
+                ; Early out if required
                 pushf
-                cli
+                cmp             SBIRQGen,1
+                je              @@SBIntHandler2
+                popf
+                jmp             OldSBISR
+
+                ; Ensure interrupts are disabled, in case something's chained us
+@@SBIntHandler2:cli
 
                 ; Save scratch registers
                 mov             SavedAX,ax
@@ -118,7 +124,7 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
                 test            al,01h                  ; 8-bit IRQ flag
                 jz              @@ExitISR               ; Was the interrupt meant for us?
                 mov             SBDetected,1            ; Signal detection success
-                cmp             NoSBEOI,1               ; Do we want to EOI?
+                cmp             SBEOI,0                 ; Do we want to EOI?
                 je              @@ExitISR
 
                 ; Acknowledge interrupt
@@ -159,45 +165,74 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
 		jmp             SHORT $+2               ; Enforce short pause between read & write
                 out             021h,al                 ; Set new mask
 
-                ; Make sure IRQ 8 (RTC) is unmasked
-                ; It's needed to drive the MPU timers
-@@IRQ2OK:       in              al,0A1h                 ; Get current mask
-                test            al,01h
-                jz              @@IRQ8OK
-                and             al,0FEh
-		jmp             SHORT $+2               ; Enforce short pause between read & write
-                out             0A1h,al                 ; Set new mask
-
                 ; Restore scratch registers
-@@IRQ8OK:       mov             ax,SavedAX
+@@IRQ2OK:       mov             ax,SavedAX
 
                 ; Chained ISR will have already sent an EOI
                 iret                                    ; Will restore int flag
 
 DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Check for exec call (4Bh)
+                ; Check for exec call (AH=04Bh,AL=00h)
                 pushf
                 cmp             ah,04Bh
                 jne             @@ExitISR3
+                cmp             al,0
+                jne             @@ExitISR3
 
-                mov             NoSBEOI,0               ; Reset SB EOI control
+                ; Disable interrupts to keep setting changes atomic
+                cli
+
+                ; Default settings
+                mov             SBEOI,1                 ; Enable SB EOI
+                mov             SBIRQGen,1              ; Enable SB IRQ generation
 
                 ; Parse filename for app detection substrings
                 push            si
                 push            eax
+                push            ebx
                 mov             si,dx
 		cld                                     ; Auto increment si
 @@ParseFilename:lodsd                                   ; Get a dword from the filename
-                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
-                je              @@DisableSBEOI
-                sub             si,3                    ; Only step a byte at a time
                 cmp             al,0                    ; Check for null terminator
                 je              @@ExitISR2
-                jmp             @@ParseFilename         ; Next char
 
-@@DisableSBEOI: mov             NoSBEOI,1               ; Don't send SB EOI
-@@ExitISR2:     pop             eax
+                ; Should we disable EOI?
+                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
+                je              @@DisableSBEOI
+                jmp             @@CheckIRQGen
+@@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
+
+@@CheckIRQGen:  ; Should we disable SB IRQ generation?
+                push            ds
+                push            si
+                mov             ebx,eax                 ; Save comparison string
+                mov             ax,cs
+                mov             ds,ax                   ; Copy cs->ds for data access
+                mov             si,OFFSET AppIDStrings
+@@ParseAppStrings:
+                lodsd                                   ; Get an ID string
+                cmp             al,0                    ; Check for null terminator
+                je              @@NextChar
+                cmp             eax,ebx
+                je              @@DisableIRQGen         ; Found a match
+                jmp             @@ParseAppStrings
+@@DisableIRQGen:mov             SBIRQGen,0              ; Disable SB interrupts
+@@NextChar:     pop             si
+                pop             ds
+                sub             si,3                    ; Only step a byte at a time
+                jmp             @@ParseFilename         ; Next char
+@@ExitISR2:     pop             ebx                     
+                pop             eax                     ; Finished parsing
                 pop             si
+
+                ; Now commit our changes
+                pusha
+                push            ds
+                mov             ax,SEG _DATA
+                mov             ds,ax
+                INVOKE          MPU401_SetEnableSBIRQ,SBIRQGen
+                pop             ds
+                popa
 @@ExitISR3:     popf
                 jmp             OldDOSISR

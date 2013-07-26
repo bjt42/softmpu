@@ -33,7 +33,7 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
 		; So we won't worry about a context switch...
 		; Interrupts are disabled already in here as well        
 		; If we're inside the interrupt handler, pass through port access
-		cmp             NoVirtualise,0
+                cmp             VirtualisePorts,1
 		je              @@PortHandler2
 		stc                                     ; Don't virtualise
 		retf
