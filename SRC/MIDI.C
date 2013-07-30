@@ -55,7 +55,13 @@ typedef int Bits;
 #define SYSEX_SIZE 1024
 #define RAWBUF  1024
 
-static char* MIDI_welcome_msg="\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.4    \x29\xf7"; /* SOFTMPU */
+/* SOFTMPU: Note tracking for RA-50 */
+#define MAX_TRACKED_CHANNELS 16
+#define MAX_TRACKED_NOTES 8
+
+static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.5    \x28\xf7"; /* SOFTMPU */
+
+static Bit8u MIDI_note_off[3] = { 0x80,0x00,0x00 }; /* SOFTMPU */
 
 static Bit8u MIDI_evt_len[256] = {
   0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,  // 0x00
@@ -80,6 +86,15 @@ static Bit8u MIDI_evt_len[256] = {
   0,2,3,2, 0,0,1,0, 1,0,1,1, 1,0,1,0   // 0xf0
 };
 
+/* SOFTMPU: Note tracking for RA-50 */
+typedef struct {
+        Bit8u used;
+        Bit8u next;
+        Bit8u notes[MAX_TRACKED_NOTES];
+} channel;
+
+channel tracked_channels[MAX_TRACKED_CHANNELS];
+
 static struct {
 	Bitu mpuport;
 	Bitu status;
@@ -93,6 +108,7 @@ static struct {
 		Bitu delay;
 		Bit32u start;
 	} sysex;
+        bool fakeallnotesoff;
 	bool available;
 	/*MidiHandler * handler;*/ /* SOFTMPU */
 } midi;
@@ -125,7 +141,30 @@ static void PlayMsg(Bit8u* msg,Bitu len)
 	}
 };
 
+/* SOFTMPU: Fake "All Notes Off" for Roland RA-50 */
+static void FakeAllNotesOff(Bitu chan)
+{
+        Bitu note;
+        channel* pChan;
+
+        MIDI_note_off[0] &= 0xf0;
+        MIDI_note_off[0] |= (Bit8u)chan;
+
+        pChan=&tracked_channels[chan];
+
+        for (note=0;note<pChan->used;note++)
+        {
+                MIDI_note_off[1]=pChan->notes[note];
+                PlayMsg(MIDI_note_off,3);
+        }
+
+        pChan->used=0;
+        pChan->next=0;
+}
+
 void MIDI_RawOutByte(Bit8u data) {
+        channel* pChan; /* SOFTMPU */
+
         if (midi.sysex.start && MIDI_sysex_delay) {
                 _asm
                 {
@@ -206,9 +245,40 @@ void MIDI_RawOutByte(Bit8u data) {
 		if (midi.cmd_pos >= midi.cmd_len) {
 			/*if (CaptureState & CAPTURE_MIDI) {
 				CAPTURE_AddMidi(false, midi.cmd_len, midi.cmd_buf);
-			}*/ /* SOFTMPU */
-			PlayMsg(midi.cmd_buf,midi.cmd_len);
-			midi.cmd_pos=1;         //Use Running status
+                        }*/ /* SOFTMPU */
+
+                        if (midi.fakeallnotesoff)
+                        {
+                                /* SOFTMPU: Test for "Note On" */
+                                if ((midi.status&0xf0)==0x90)
+                                {
+                                        if (midi.cmd_buf[2]>0)
+                                        {
+                                                pChan=&tracked_channels[midi.status&0x0f];
+                                                pChan->notes[pChan->next++]=midi.cmd_buf[1];
+                                                pChan->next &= MAX_TRACKED_NOTES;
+                                                if (pChan->used<MAX_TRACKED_NOTES) pChan->used++;
+                                        }
+
+                                        PlayMsg(midi.cmd_buf,midi.cmd_len);
+                                }
+                                /* SOFTMPU: Test for "All Notes Off" */
+                                else if (((midi.status&0xf0)==0xb0) &&
+                                         (midi.cmd_buf[1]>=0x7b) &&
+                                         (midi.cmd_buf[1]<=0x7f))
+                                {
+                                        FakeAllNotesOff(midi.status&0x0f);
+                                }
+                                else
+                                {
+                                        PlayMsg(midi.cmd_buf,midi.cmd_len);
+                                }
+                        }
+                        else
+                        {
+                                PlayMsg(midi.cmd_buf,midi.cmd_len);
+                        }
+                        midi.cmd_pos=1;         //Use Running status
 		}
 	}
 }
@@ -218,7 +288,7 @@ bool MIDI_Available(void)  {
 }
 
 /* SOFTMPU: Initialisation */
-void MIDI_Init(Bitu mpuport,bool delaysysex)
+void MIDI_Init(Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
 {
         Bitu i; /* SOFTMPU */
 	midi.sysex.delay = 0;
@@ -234,12 +304,20 @@ void MIDI_Init(Bitu mpuport,bool delaysysex)
 	midi.status=0x00;
 	midi.cmd_pos=0;
 	midi.cmd_len=0;
+        midi.fakeallnotesoff=fakeallnotesoff;
         midi.available=true;
 
         /* SOFTMPU: Display welcome message on MT-32 */
-        for(i=0;i<30;i++)
+        for (i=0;i<30;i++)
         {
                 MIDI_RawOutByte(MIDI_welcome_msg[i]);
+        }
+
+        /* SOFTMPU: Init note tracking */
+        for (i=0;i<MAX_TRACKED_CHANNELS;i++)
+        {
+                tracked_channels[i].used=0;
+                tracked_channels[i].next=0;
         }
 }
 

@@ -70,7 +70,13 @@ Init:           ; Ensure ds=cs
 		cmp             eax,'LED/'              ; Check for delay switch
 		je              @@EnableDelay
 		cmp             eax,'led/'
+                je              @@EnableDelay
+                cmp             eax,'5AR/'
+                je              @@EnableFakeOff
+                cmp             eax,'5ar/'
 		jne             @@NextParam
+@@EnableFakeOff:mov             es:FakeAllNotesOff,1    ; Enable simulated "All Notes Off"
+                jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
 		jmp             @@NextParam
 
@@ -320,7 +326,11 @@ Init:           ; Ensure ds=cs
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
-@@NoDelay:      pop             ds
+@@NoDelay:      cmp             es:FakeAllNotesOff,0
+                je              @@NoFakeNotes
+                mov             dx,OFFSET FakeEnabled
+                int             021h
+@@NoFakeNotes:  pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs

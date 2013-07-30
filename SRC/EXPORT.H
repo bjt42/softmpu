@@ -39,7 +39,7 @@ typedef enum EventID {MPU_EVENT,RESET_DONE,EOI_HANDLER,NUM_EVENTS} EventID;
 /* Interface functions */
 void PIC_Update(bool blocking);
 
-void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex);
+void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
 void MPU401_SetEnableSBIRQ(bool enable);
 Bitu MPU401_ReadStatus(void);
 void MPU401_WriteCommand(Bitu val);

@@ -38,6 +38,7 @@ CmdHandlerAddr  DW              OFFSET PortHandler
 SBPortAddr      DW              0
 SBIRQ           DB              0
 DelaySysex      DB              0
+FakeAllNotesOff DB              0
 
 VirtualisePorts DB              0                       ; Port virtualisation control
 SBEOI           DB              1                       ; SB ISR EOI control
@@ -59,7 +60,7 @@ SBDetected      DB              0
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work
-IDPad           DB              3 DUP (?)
+IDPad           DB              2 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
                 INCLUDE         appstr.asm              ; App ID substrings
@@ -95,7 +96,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex
+@@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex,cs:FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

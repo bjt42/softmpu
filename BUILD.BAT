@@ -8,11 +8,11 @@ del softmpu.exe
 del *.obj
 del *.inc
 del *.map
-%CLEXE% /c /W2 /BATCH /Os /Ol /Og /Oe /Oi /Gs /FoMPU401.obj MPU401.C
+%CLEXE% /c /W2 /BATCH /Ox /FoMPU401.obj MPU401.C
 @if errorlevel 1 goto end
-%CLEXE% /c /W2 /BATCH /Os /Ol /Og /Oe /Oi /Gs /FoMIDI.obj MIDI.C
+%CLEXE% /c /W2 /BATCH /Ox /FoMIDI.obj MIDI.C
 @if errorlevel 1 goto end
-%CLEXE% /c /W2 /BATCH /Os /Ol /Og /Oe /Oi /Gs /FoPIC.obj PIC.C
+%CLEXE% /c /W2 /BATCH /Ox /FoPIC.obj PIC.C
 @if errorlevel 1 goto end
 %H2INC% export.h
 @if errorlevel 1 goto end
