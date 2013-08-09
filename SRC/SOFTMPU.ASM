@@ -54,6 +54,10 @@
 ; - Fixed games with digital FX
 ; - Improved EMM386 detection
 ;
+; 1.5
+;
+; - Optional simulated "All Notes Off" commands for RA-50
+;
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init
