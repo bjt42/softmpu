@@ -52,7 +52,7 @@ void PIC_SetIRQMask(Bitu irq,bool masked);
 void PIC_AddEvent(EventID event,Bitu delay);
 void PIC_RemoveEvents(EventID event);
 
-void MIDI_Init(Bitu mpuport,bool delaysysex);
+void MIDI_Init(Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
 void MIDI_RawOutByte(Bit8u data);
 bool MIDI_Available(void);
 
@@ -684,13 +684,13 @@ void MPU401_SetEnableSBIRQ(bool enable)
 }
 
 /* SOFTMPU: Initialisation */
-void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex)
+void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
 {
 	/* Initalise PIC code */
 	PIC_Init();
 
 	/* Initialise MIDI handler */
-	MIDI_Init(mpuport,delaysysex);
+        MIDI_Init(mpuport,delaysysex,fakeallnotesoff);
 	if (!MIDI_Available()) return;
 
 	mpu.queue_used=0;
