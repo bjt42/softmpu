@@ -256,7 +256,7 @@ void MIDI_RawOutByte(Bit8u data) {
                                         {
                                                 pChan=&tracked_channels[midi.status&0x0f];
                                                 pChan->notes[pChan->next++]=midi.cmd_buf[1];
-                                                pChan->next &= MAX_TRACKED_NOTES;
+                                                if (pChan->next==MAX_TRACKED_NOTES) pChan->next=0;
                                                 if (pChan->used<MAX_TRACKED_NOTES) pChan->used++;
                                         }
 

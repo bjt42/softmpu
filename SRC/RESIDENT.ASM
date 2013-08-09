@@ -60,7 +60,7 @@ SBDetected      DB              0
 
 		; Following data needs to be 4-byte aligned
 		; Might need to add some padding here for detection to work
-IDPad           DB              2 DUP (?)
+IDPad           DB              0 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
                 INCLUDE         appstr.asm              ; App ID substrings
