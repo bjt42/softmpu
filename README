@@ -1,11 +1,11 @@
-----------------------------------------------
-SoftMPU 1.5 by bjt - Software MPU-401 Emulator
-----------------------------------------------
-Copyright (C) 2013        bjt
+-----------------------------------------
+SoftMPU 1.6 - Software MPU-401 Emulator
+-----------------------------------------
+Copyright (C) 2013        bjt, elianda
 Copyright (C) 2002-2013   The DOSBox Team
-----------------------------------------------
+-----------------------------------------
 
-Release Notes (09/08/13)
+Release Notes (30/08/13)
 
 WHAT IS IT?
 
@@ -24,8 +24,7 @@ work with the basic MPU interface found on sound cards.
 
 REQUIREMENTS
 
-- MS-DOS 6.2 or later. SoftMPU will not work from within Windows
-- EMM386 must be loaded
+- EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+
 - Sound Blaster (or compatible) sound card with an MPU-401 interface
   supporting UART mode (e.g. Sound Blaster 16/AWE, Yamaha YMF71x)
 - Roland LA synth (e.g. MT-32, CM-32L) or a sound card with MT-32 emulation
@@ -44,7 +43,7 @@ The optional /RA50 switch enables simulated "All Notes Off" commands for
 compatibility with the Roland RA-50.
 
 SoftMPU will remain active until the PC is restarted. It occupies
-approximately 7KB and can be loaded into high memory using the LH command.
+approximately 8KB and can be loaded into high memory using the LH command.
 
 TROUBLESHOOTING
 
@@ -52,8 +51,8 @@ Problem:  When using a PS/2 mouse, moving the cursor causes slow playback.
 Solution: Use a mouse driver that supports direct hardware access e.g.
           CuteMouse 2.0 (but not 2.1).
 
-Problem:  Some games (e.g. Gateway) expect to find an MPU interface on IRQ 2,
-          but my sound card doesn't support it.
+Problem:  Some games expect to find an MPU interface on IRQ 2, but my sound
+          card doesn't support it.
 Solution: Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
           maybe others too.
 

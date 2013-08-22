@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2002-2012  The DOSBox Team
- *  Copyright (C) 2013       bjt
+ *  Copyright (C) 2013       bjt, elianda
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -124,6 +124,9 @@ static struct {
 	} clock;
 } mpu;
 
+/* SOFTMPU: Global QEMM interface parameters accessed from MIDI_PlayMsg */
+qemmQPI qemm = { false, 0 }; /* Disabled by default */
+
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
         if (mpu.queue_used==0 && mpu.intelligent && mpu.generate_irqs) {
@@ -148,15 +151,22 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	Bit8u retval=0x3f; /* Bits 6 and 7 clear */
 
 	/* SOFTMPU: Reflect hardware DRR */
-        _asm
+	_asm
 	{
-                mov     dx,mpu.mpuport
-                inc     dx
-                in      al,dx
-                and     al,040h
-                or      retval,al
-        }
-        if (mpu.state.cmd_pending) retval|=0x40;
+                        mov     dx,mpu.mpuport
+                        inc     dx
+                        cmp     qemm.installed,1
+                        jne     UntrappedIn
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+                        call    qemm.QPIEntry           ; Result in BL
+                        mov     al,bl
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        UntrappedIn:    in      al,dx
+                        and     al,040h
+                        or      retval,al
+	}
+	if (mpu.state.cmd_pending) retval|=0x40;
 	if (!mpu.queue_used) retval|=0x80;
 
         /* SOFTMPU: Handle spinning on status with interrupts disabled */
@@ -705,6 +715,15 @@ void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakealln
 
         /* SOFTMPU: Moved IRQ 9 handler init to asm */
 	MPU401_Reset();
+}
+
+/* SOFTMPU: Set QEMM interface parameters */
+void MPU401_SetQEMMQPI(Bitu addr,Bitu segm)
+{
+        qemm.installed=true;
+        qemm.QPIEntry=(Bit32)segm;
+        qemm.QPIEntry=qemm.QPIEntry<<16;
+        qemm.QPIEntry=qemm.QPIEntry|(Bit32)addr;
 }
 
 /* DOSBox initialisation code */

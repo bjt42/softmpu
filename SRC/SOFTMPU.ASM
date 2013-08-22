@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -57,6 +57,11 @@
 ; 1.5
 ;
 ; - Optional simulated "All Notes Off" commands for RA-50
+;
+;
+; 1.6
+;
+; - QEMM support (requires version 7.03+)
 ;
 ; ------------------------------------------
 

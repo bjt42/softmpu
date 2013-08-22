@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2002-2013  The DOSBox Team
- *  Copyright (C) 2013       bjt
+ *  Copyright (C) 2013       bjt, elianda
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ typedef int Bits;
 #define MAX_TRACKED_CHANNELS 16
 #define MAX_TRACKED_NOTES 8
 
-static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.5    \x28\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.6    \x27\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_note_off[3] = { 0x80,0x00,0x00 }; /* SOFTMPU */
 
@@ -116,6 +116,9 @@ static struct {
 /* SOFTMPU: Sysex delay is decremented from PIC_Update */
 Bitu MIDI_sysex_delay;
 
+/* SOFTMPU: Initialised in mpu401.c */
+extern qemmQPI qemm;
+
 static void PlayMsg(Bit8u* msg,Bitu len)
 {
 	/* Output a MIDI message to the hardware */
@@ -129,15 +132,37 @@ static void PlayMsg(Bit8u* msg,Bitu len)
 	NextByte:       cmp     bx,cx
 			je      End
 			inc     dx                      ; Set cmd port
-	WaitDRR:        in      al,dx
+        WaitDRR:        cmp     qemm.installed,1
+                        jne     WaitDRRUntrappedIN
+			push	bx
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+			call	qemm.QPIEntry
+			mov	al,bl
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitDRRUntrappedIN:
+			in      al,dx
 			test    al,040h
 			jnz     WaitDRR
 			dec     dx                      ; Set data port
 			mov     al,[bx]
+                        cmp     qemm.installed,1
+                        jne     WaitDRRUntrappedOUT
+			push 	bx
+                        mov     bl,al                   ; BL = value
+                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
+			call	qemm.QPIEntry
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitDRRUntrappedOUT:
 			out     dx,al
 			inc     bx
 			jmp     NextByte
-        End:            nop
+
+                        ; Nothing more to send
+	End:            nop
 	}
 };
 

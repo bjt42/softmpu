@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -56,11 +56,17 @@ OldDOSISR       LABEL           DWORD
 OldDOSISRAddr   DW              ?
 OldDOSISRSeg    DW              ?                       ; Don't reorder these
 
+QPIEntry	LABEL		DWORD
+QPIAddr		DW              ?
+QPISeg		DW              ?                       ; Don't reorder these
+
+OldQEMMIOCB	LABEL		DWORD
+OldQEMMIOCBAddr	DW              ?
+OldQEMMIOCBSeg	DW              ?                       ; Don't reorder these
+
+QEMMInstalled   DB              0
 SBDetected      DB              0
 
-		; Following data needs to be 4-byte aligned
-		; Might need to add some padding here for detection to work
-IDPad           DB              0 DUP (?)
 IDString        DB              '0S2M'                  ; Detection string
 
                 INCLUDE         appstr.asm              ; App ID substrings
@@ -74,9 +80,13 @@ Start:          push            es
 		pop             es                      ; Restore es
 
 		; All good so far. Set up port handler
-		push            ds
-		mov             ax,cs
-		mov             ds,ax                   ; Ensure cs=ds
+                push            ds
+                mov             ax,cs
+                mov             ds,ax                   ; Ensure cs=ds
+                cmp             QEMMInstalled,1
+                je              @@QEMMPortHandlerInstall
+
+                ; Install EMM386 port handler
 		mov             dx,MPUCmdPortAddr
 		shl             edx,16
 		mov             dx,MPUDataPortAddr      ; Cmd addr high, data addr low
@@ -91,8 +101,32 @@ Start:          push            es
 		int             02Fh                    ; Install handler
 		pop             ds                      ; Restore ds
 		jnc             @@InitSoftMPU           ; Init MPU lib
-		push            es
-		mov             ax,cs
+                jmp             @@EMMErr
+
+@@QEMMPortHandlerInstall:
+		mov		di,OFFSET QEMMPortHandler
+		push		es
+                mov             ax,cs
+                mov             es,ax                   ; ES:DI is callback address
+		mov		ax,01A07h		; QPI_SetIOCallback
+                call            QPIEntry
+		pop		es
+                jc              @@EMMErr                ; Fail
+		mov             dx,MPUCmdPortAddr
+                mov             ax,01A09h               ; TODO: Check if it was previously trapped
+		call		QPIEntry		; QPI_SetPortTrap
+                jc              @@EMMErr                ; Fail
+		mov             dx,MPUDataPortAddr
+		mov		ax,01A09h
+		call		QPIEntry		; QPI_SetPortTrap
+                jc              @@EMMErr                ; Fail
+                mov             DataSelector,SEG _DATA  ; Save real-mode seg addr
+		pop		ds
+                INVOKE          MPU401_SetQEMMQPI,cs:QPIAddr,cs:QPISeg
+                jmp             @@InitSoftMPU           ; Init MPU lib
+
+@@EMMErr:       push            es
+                mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 

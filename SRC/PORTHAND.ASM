@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -27,14 +27,41 @@ HookedGDT       DB              0                       ; Have we munged the GDT
 DataSelector    DW              ?                       ; Data segment selector
 ReturnByte      DB              ?                       ; Temporary storage for return vals
 
+QEMMPortHandler:; Real mode callback
+                cmp             dx,MPUDataPortAddr
+                je              @@QEMMPortHandler2
+                cmp             dx,MPUCmdPortAddr
+                je              @@QEMMPortHandler2
+                jmp             OldQEMMIOCB
+
+@@QEMMPortHandler2:
+                ; Ensure interrupts disabled
+                pushf
+                cli
+
+                ; Ensure ds=cs
+                push            ds
+                push            cs
+                pop             ds
+                jmp             @@SetDataSel
+
 PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read data from cs
 		
 		; EMM386 appears to set up a nice 4K stack for the handler
 		; So we won't worry about a context switch...
-		; Interrupts are disabled already in here as well        
-		; If we're inside the interrupt handler, pass through port access
+
+                ; Ensure interrupts disabled
+                pushf
+                cli
+
+                ; Match QEMM code path with redundant push
+                push            ds
+
+                ; If we're inside the interrupt handler, pass through port access
                 cmp             VirtualisePorts,1
 		je              @@PortHandler2
+                pop             ds
+                popf
 		stc                                     ; Don't virtualise
 		retf
 
@@ -91,10 +118,10 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
 		mov             ds,DataSelector         ; Set ds so we can read from _DATA
 
 		; Test for input/output
-		test            ecx,ecx
-		jz              @@HandleInput
+@@HandlePort:   test            cl,cl
+                jz              @@HandleInput
 
-		; Handle output
+                ; Handle output
 		cmp             dx,bx
 		jne             @@WriteCommand
 		INVOKE          MPU401_WriteData,al
@@ -122,5 +149,7 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
                 popa
                 mov             al,ReturnByte
 @@ExitHandlerVirt:
+                pop             ds
+                popf
 		clc                                     ; Always virtualised so don't call original handler
 		retf
