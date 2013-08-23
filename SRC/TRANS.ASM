@@ -29,6 +29,8 @@ EMMVersion      LABEL           WORD                    ; EMM386 version buffer
 EMMMajor        DB              02h
 EMMMinor        DB              00h
 
+                ASSUME          ds:_DATA                ; Access local vars via cs
+
 Init:           ; Ensure ds=cs
 		push            ds
 		mov             ax,cs
@@ -278,16 +280,16 @@ Init:           ; Ensure ds=cs
 		xor		cx,cx
 		mov             si,cx
 		mov		ds,cx
-@@CompareNext:  lodsb                                   ; LL
-                mov             dl,al                   ; Save in DL
-                lodsb                                   ; LH
+@@CompareNext:  lodsb                                   ; Low word/low byte
+                mov             dl,al                   ; Save in dl
+                lodsb                                   ; Low/high
                 mov             dh,al                   ; Order
-                lodsb                                   ; HL
-                mov             ah,al                   ; Move to AH
-                lodsb                                   ; Load HH to AL
-                xchg            al,ah                   ; Order HH,HL
+                lodsb                                   ; High/low
+                mov             ah,al                   ; Move to ah
+                lodsb                                   ; Load high/high to al
+                xchg            al,ah                   ; Order high/high,high/low
                 shl             eax,16                  ; To upper 16 bits
-                mov             ax,dx                   ; Move lower 16 bits from DX to lower EAX
+                mov             ax,dx                   ; Move lower 16 bits from dx to lower eax
 		cmp             eax,ebx
 		je              FoundID
                 sub             si,3                    ; After 4 lodsb effectively +1
@@ -297,7 +299,7 @@ Init:           ; Ensure ds=cs
 		inc		cx
 		mov		ds,cx
                 cmp             cx,0
-                jne             @@CompareNext           ; CX will overflow at 1MB
+                jne             @@CompareNext           ; cx will overflow at 1MB
 		pop             ds
 		popf                                    ; Enable interrupts
 

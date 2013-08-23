@@ -26,6 +26,8 @@
 SecondReset     DB              0
 LoopCounter     DW              ?
 
+                ASSUME          ds:_DATA                ; Access local vars via cs
+
 CharToNum:      ; Input char in al
 		cmp             al,061h
 		jl              @@NotLower

@@ -150,7 +150,7 @@ static void PlayMsg(Bit8u* msg,Bitu len)
                         cmp     qemm.installed,1
                         jne     WaitDRRUntrappedOUT
 			push 	bx
-                        mov     bl,al                   ; BL = value
+                        mov     bl,al                   ; bl = value
                         mov     ax,01A01h               ; QPI_UntrappedIOWrite
 			call	qemm.QPIEntry
 			pop	bx

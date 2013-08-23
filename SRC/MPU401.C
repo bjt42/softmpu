@@ -158,7 +158,7 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                         cmp     qemm.installed,1
                         jne     UntrappedIn
                         mov     ax,01A00h               ; QPI_UntrappedIORead
-                        call    qemm.QPIEntry           ; Result in BL
+                        call    qemm.QPIEntry           ; Result in bl
                         mov     al,bl
                         _emit   0A8h                    ; Emit test al,(next opcode byte)
                                                         ; Effectively skips next instruction

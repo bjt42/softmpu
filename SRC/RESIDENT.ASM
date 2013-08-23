@@ -73,6 +73,8 @@ IDString        DB              '0S2M'                  ; Detection string
                 INCLUDE         inthand.asm             ; Interrupt handlers
 		INCLUDE         porthand.asm            ; Port handler code
 
+                ASSUME          ds:_DATA                ; Access local vars via cs
+
 Start:          push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init
@@ -107,13 +109,13 @@ Start:          push            es
 		mov		di,OFFSET QEMMPortHandler
 		push		es
                 mov             ax,cs
-                mov             es,ax                   ; ES:DI is callback address
+                mov             es,ax                   ; es:di is callback address
 		mov		ax,01A07h		; QPI_SetIOCallback
                 call            QPIEntry
 		pop		es
                 jc              @@EMMErr                ; Fail
 		mov             dx,MPUCmdPortAddr
-                mov             ax,01A09h               ; TODO: Check if it was previously trapped
+                mov             ax,01A09h
 		call		QPIEntry		; QPI_SetPortTrap
                 jc              @@EMMErr                ; Fail
 		mov             dx,MPUDataPortAddr

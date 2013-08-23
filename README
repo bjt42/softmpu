@@ -24,7 +24,7 @@ work with the basic MPU interface found on sound cards.
 
 REQUIREMENTS
 
-- EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+
+- EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+ must be loaded
 - Sound Blaster (or compatible) sound card with an MPU-401 interface
   supporting UART mode (e.g. Sound Blaster 16/AWE, Yamaha YMF71x)
 - Roland LA synth (e.g. MT-32, CM-32L) or a sound card with MT-32 emulation
