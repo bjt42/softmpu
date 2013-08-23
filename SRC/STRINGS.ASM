@@ -70,3 +70,4 @@ HelpText        DB              'Usage: SOFTMPU /SB:nnn /IRQ:nn /MPU:nnn [/DELAY
                 DB              '  /RA50         Simulate "All Notes Off" for Roland RA-50',0Dh,0Ah,'$'
 EMMDevice       DB              'EMMXXXX0',00h
 EMMDevice2      DB              'EMMQXXX0',00h
+QEMMDevice      DB              'QEMM386$',00h

@@ -718,12 +718,10 @@ void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakealln
 }
 
 /* SOFTMPU: Set QEMM interface parameters */
-void MPU401_SetQEMMQPI(Bitu addr,Bitu segm)
+void MPU401_SetQEMMQPI(Bit32 entry)
 {
         qemm.installed=true;
-        qemm.QPIEntry=(Bit32)segm;
-        qemm.QPIEntry=qemm.QPIEntry<<16;
-        qemm.QPIEntry=qemm.QPIEntry|(Bit32)addr;
+        qemm.QPIEntry=entry;
 }
 
 /* DOSBox initialisation code */

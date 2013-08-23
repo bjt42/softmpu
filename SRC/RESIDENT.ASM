@@ -124,7 +124,7 @@ Start:          push            es
                 jc              @@EMMErr                ; Fail
                 mov             DataSelector,SEG _DATA  ; Save real-mode seg addr
 		pop		ds
-                INVOKE          MPU401_SetQEMMQPI,cs:QPIAddr,cs:QPISeg
+                INVOKE          MPU401_SetQEMMQPI,QPIEntry
                 jmp             @@InitSoftMPU           ; Init MPU lib
 
 @@EMMErr:       push            es
@@ -132,7 +132,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,cs:SBPortAddr,cs:SBIRQ,cs:MPUDataPortAddr,cs:DelaySysex,cs:FakeAllNotesOff
+@@InitSoftMPU:  INVOKE          MPU401_Init,SBPortAddr,SBIRQ,MPUDataPortAddr,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

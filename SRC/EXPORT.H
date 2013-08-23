@@ -47,7 +47,7 @@ typedef struct {
 void PIC_Update(bool blocking);
 
 void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
-void MPU401_SetQEMMQPI(Bitu addr,Bitu segm);
+void MPU401_SetQEMMQPI(Bit32 entry);
 void MPU401_SetEnableSBIRQ(bool enable);
 Bitu MPU401_ReadStatus(void);
 void MPU401_WriteCommand(Bitu val);

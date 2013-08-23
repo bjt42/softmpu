@@ -198,56 +198,25 @@ Init:           ; Ensure ds=cs
 @@SingleDigit:  call            NumToChar
 		mov             SBIRQNum,al
 
-                ; Check for an EMM
-                push            ds                      ; Installation checks
-                xor             ax,ax
-		mov             ds,ax
-		mov             ax,ds:[019Eh]
-                mov             es:QPISeg,ax            ; Save segment in case QEMM is installed
-                or              ax,ds:[019Ch]
-		pop             ds
-		jz              @@NoEMM
-		mov             ax,0FFA5h
-		int             067h
-		cmp             ax,0845Ah
-                jne             @@CheckQEMM             ; Check for QEMM instead
+                ; Check if QEMM is loaded
                 mov             ax,03D00h               ; Open file R/O
-                mov             dx,OFFSET EMMDevice
+                mov             dx,OFFSET QEMMDevice
                 int             021h                    ; Get handle
-                jnc             @@CheckVersion
-                mov             ax,03D00h               ; Open file R/O
-                mov             dx,OFFSET EMMDevice2
-                int             021h                    ; Get handle
-                jc              @@CheckQEMM             ; Check for QEMM instead
-@@CheckVersion: mov             bx,ax
-                mov             ax,04402h               ; Get manager version
-                mov             cx,02h
-                mov             dx,OFFSET EMMVersion
-                int             021h
-                mov             ah,03Eh                 ; Close file
-                int             021h
-                cmp             EMMMajor,4              ; Require EMM386 >= 4.46
-                jl              @@NoEMM
-                cmp             EMMMinor,45
-                jg              @@FoundEMM
-
-@@CheckQEMM:    ; Check if QEMM386 is loaded
-                mov             ah,03Fh
-                mov             cx,05145h               ; QE
-                mov             dx,04D4Dh               ; MM
-		push		es
-		int		067h
-		mov		bx,es
-		mov		cx,di
-		pop		es
-		cmp		ah,0
-                jne             @@NoEMM
-                mov             bx,es:QPISeg            ; Get saved QEMM segment
-		push		ds
-		mov		ds,bx
-                mov             ax,ds:[012h]            ; Get QPI address
-		pop		ds
-                mov             es:QPIAddr,ax
+                jc              @@CheckEMM              ; Check for EMM386 instead
+                mov             bx,ax
+                push            ds
+                mov             ax,es
+                mov             ds,ax
+                mov             dx,OFFSET es:QPIEntry   ; Set read buffer
+                mov             cx,4
+                mov             ax,04402h
+                int             021h                    ; Read QPI entry
+                pop             ds
+                pushf
+                mov             ah,03Eh
+                int             021h                    ; Close file
+                popf
+                jc              @@NoEMM
                 push            es                      ; Get old IO callback address
 		mov		ax,01A06h
 		call		es:QPIEntry
@@ -257,9 +226,32 @@ Init:           ; Ensure ds=cs
                 mov             es:OldQEMMIOCBSeg,ax
                 mov             es:OldQEMMIOCBAddr,bx
 
-                ; Save flag for QEMM
+                ; Set QEMM flag
                 mov             es:QEMMInstalled,1
                 jmp             @@FoundEMM
+
+@@CheckEMM:     mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice
+                int             021h                    ; Get handle
+                jnc             @@CheckVersion
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET EMMDevice2
+                int             021h                    ; Get handle
+                jc              @@NoEMM                 ; Fail
+@@CheckVersion: mov             bx,ax
+                mov             ax,04402h               ; Get manager version
+                mov             cx,02h
+                mov             dx,OFFSET EMMVersion
+                int             021h
+                pushf                                   ; Save error flag
+                mov             ah,03Eh                 ; Close file
+                int             021h
+                popf
+                jc              @@NoEMM
+                cmp             EMMMajor,4              ; Require EMM386 >= 4.46
+                jl              @@NoEMM
+                cmp             EMMMinor,45
+                jg              @@FoundEMM
 
 @@NoEMM:        ; EMM not present
 		mov             ah,9
