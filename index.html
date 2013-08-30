@@ -28,9 +28,9 @@
         </ul>
       </header>
       <section>
-        <p><strong>Update 09/08/13</strong> - SoftMPU 1.5 is out! This release adds a compatibility mode for the Roland RA-50.</p>
+        <p><strong>Update 30/08/13</strong> - SoftMPU 1.6 is out! This release adds support for the QEMM memory manager.</p>
 
-<p><strong>Update 26/07/13</strong> - SoftMPU 1.4 is out! This release fixes "Wing Commander II" and other games with digital FX.</p>
+<p><strong>Update 09/08/13</strong> - SoftMPU 1.5 is out! This release adds a compatibility mode for the Roland RA-50.</p>
 
 <hr><p><strong>Download SoftMPU here:</strong> <a href="http://github.com/bjt42/softmpu/zipball/master">http://github.com/bjt42/softmpu/zipball/master</a></p>
 
@@ -39,12 +39,12 @@
 <p><strong>Game &amp; sound card compatibility list:</strong> <a href="http://github.com/bjt42/softmpu/wiki">http://github.com/bjt42/softmpu/wiki</a></p>
 
 <hr><h2>
-<a name="softmpu-15-by-bjt---software-mpu-401-emulator" class="anchor" href="#softmpu-15-by-bjt---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.5 by bjt - Software MPU-401 Emulator</h2>
+<a name="softmpu-16---software-mpu-401-emulator" class="anchor" href="#softmpu-16---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.6 - Software MPU-401 Emulator</h2>
 
-<p>Copyright (C) 2013        bjt
+<p>Copyright (C) 2013        bjt, elianda
 Copyright (C) 2002-2013   The DOSBox Team</p>
 
-<p>Release Notes (09/08/13)</p>
+<p>Release Notes (30/08/13)</p>
 
 <h3>
 <a name="what-is-it" class="anchor" href="#what-is-it"><span class="octicon octicon-link"></span></a>WHAT IS IT?</h3>
@@ -67,8 +67,7 @@ work with the basic MPU interface found on sound cards.</p>
 <a name="requirements" class="anchor" href="#requirements"><span class="octicon octicon-link"></span></a>REQUIREMENTS</h3>
 
 <ul>
-<li>MS-DOS 6.2 or later. SoftMPU will not work from within Windows</li>
-<li>EMM386 must be loaded</li>
+<li>EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+ must be loaded</li>
 <li>Sound Blaster (or compatible) sound card with an MPU-401 interface
 supporting UART mode (e.g. Sound Blaster 16/AWE, Yamaha YMF71x)</li>
 <li>Roland LA synth (e.g. MT-32, CM-32L) or a sound card with MT-32 emulation</li>
@@ -87,7 +86,7 @@ buffer overflow with the Rev.0 MT-32.</p>
 compatibility with the Roland RA-50.</p>
 
 <p>SoftMPU will remain active until the PC is restarted. It occupies
-approximately 7KB and can be loaded into high memory using the LH command.</p>
+approximately 8KB and can be loaded into high memory using the LH command.</p>
 
 <h3>
 <a name="troubleshooting" class="anchor" href="#troubleshooting"><span class="octicon octicon-link"></span></a>TROUBLESHOOTING</h3>
@@ -96,13 +95,13 @@ approximately 7KB and can be loaded into high memory using the LH command.</p>
 <strong>Solution:</strong> Use a mouse driver that supports direct hardware access e.g.
               CuteMouse 2.0 (but not 2.1).</p>
 
-<p><strong>Problem:</strong>  Some games (e.g. Gateway) expect to find an MPU interface on IRQ 2,
+<p><strong>Problem:</strong>  Some games expect to find an MPU interface on IRQ 2, but my sound
               but my sound card doesn't support it.
 <strong>Solution:</strong> Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
               maybe others too.</p>
 
 <p><strong>Problem:</strong>  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
-              sounds incorrect.
+              card doesn't support it.
 <strong>Solution:</strong> Run SoftMPU with the <code>/DELAYSYSEX</code> switch.</p>
 
 <p><strong>Problem:</strong>  Music playback stops working after running a specific program.
