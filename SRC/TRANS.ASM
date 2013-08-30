@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -28,6 +28,8 @@ TransientSeg    SEGMENT 'transient'
 EMMVersion      LABEL           WORD                    ; EMM386 version buffer
 EMMMajor        DB              02h
 EMMMinor        DB              00h
+
+                ASSUME          ds:_DATA                ; Access local vars via cs
 
 Init:           ; Ensure ds=cs
 		push            ds
@@ -196,68 +198,106 @@ Init:           ; Ensure ds=cs
 @@SingleDigit:  call            NumToChar
 		mov             SBIRQNum,al
 
-		; Check for EMM386
-                push            ds                      ; Installation checks
-                xor             ax,ax
+                ; Check if QEMM is loaded
+                mov             ax,03D00h               ; Open file R/O
+                mov             dx,OFFSET QEMMDevice
+                int             021h                    ; Get handle
+                jc              @@CheckEMM              ; Check for EMM386 instead
+                mov             bx,ax
+                push            ds
+                mov             ax,es
                 mov             ds,ax
-                mov             ax,ds:[019Ch]
-                or              ax,ds:[019Eh]
+                mov             dx,OFFSET es:QPIEntry   ; Set read buffer
+                mov             cx,4
+                mov             ax,04402h
+                int             021h                    ; Read QPI entry
                 pop             ds
-                jz              @@NoEMM
-                mov             ax,0FFA5h
-                int             067h
-                cmp             ax,0845Ah
-                jne             @@NoEMM
+                pushf
+                mov             ah,03Eh
+                int             021h                    ; Close file
+                popf
+                jc              @@NoEMM
+                mov             ah,03h                  ; QPI_GetVersion
+                call            es:QPIEntry
+                cmp             bx,0703h                ; Require QEMM >= 7.03
+                jl              @@NoEMM
+                push            es
+                mov             ax,01A06h               ; QPI_GetIOCallback
+		call		es:QPIEntry
+		mov		ax,es
+		mov		bx,di
+		pop		es
+                mov             es:OldQEMMIOCBSeg,ax
+                mov             es:OldQEMMIOCBAddr,bx
+                mov             es:QEMMInstalled,1      ; Set QEMM flag
+                jmp             @@FoundEMM
+
+@@CheckEMM:     ; Check if EMM386 is loaded
                 mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice
                 int             021h                    ; Get handle
-                jnc             @@CheckVersion
+                jnc             @@CheckEMMVersion
                 mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice2
                 int             021h                    ; Get handle
-                jc              @@NoEMM
-@@CheckVersion: mov             bx,ax
-                mov             ax,04402h               ; Get manager version
-                mov             cx,02h
+                jc              @@NoEMM                 ; Fail
+@@CheckEMMVersion:
+                mov             bx,ax
                 mov             dx,OFFSET EMMVersion
+                mov             cx,02h
+                mov             ax,04402h               ; Get manager version
                 int             021h
+                pushf                                   ; Save error flag
                 mov             ah,03Eh                 ; Close file
                 int             021h
+                popf
+                jc              @@NoEMM
                 cmp             EMMMajor,4              ; Require EMM386 >= 4.46
                 jl              @@NoEMM
                 cmp             EMMMinor,45
                 jg              @@FoundEMM
 
-@@NoEMM:        ; EMM386 not present
+@@NoEMM:        ; EMM not present
 		mov             ah,9
 		mov             dx,OFFSET NoEMM
 		int             021h
 		jmp             Terminate
 
 @@FoundEMM:     ; Check if already loaded
-                ; Disable interrupts so registers aren't pushed to memory
-                pushf
-                cli
+		; Disable interrupts so registers aren't pushed to memory
+		pushf
+		cli
 		mov             si,OFFSET es:IDString
-		mov             eax,DWORD PTR es:[si]
-		inc             eax                     ; Construct valid ID string
-		mov             ebx,eax
+		mov		ebx,es:[si]
+                inc             ebx                     ; Installed TSRs ID is IDString+1
 
 		; Iterate through base + high memory and look for string
 		push            ds
-		mov             esi,00000000h
-@@CompareNext:  mov             ecx,esi
-		and             ecx,0FFFF0000h
-		shr             ecx,4
-		mov             ds,cx                   ; Set segment base
-		mov             eax,DWORD PTR [si]      ; Use 16-bit offset only
+		xor		cx,cx
+		mov             si,cx
+		mov		ds,cx
+@@CompareNext:  lodsb                                   ; Low word/low byte
+                mov             dl,al                   ; Save in dl
+                lodsb                                   ; Low/high
+                mov             dh,al                   ; Order
+                lodsb                                   ; High/low
+                mov             ah,al                   ; Move to ah
+                lodsb                                   ; Load high/high to al
+                xchg            al,ah                   ; Order high/high,high/low
+                shl             eax,16                  ; To upper 16 bits
+                mov             ax,dx                   ; Move lower 16 bits from dx to lower eax
 		cmp             eax,ebx
 		je              FoundID
-		add             esi,4                   ; Can't guarantee alignment :(
-		cmp             esi,00100000h           ; Stop at 1MB
+                sub             si,3                    ; After 4 lodsb effectively +1
+                cmp             si,16                   ; Inc seg instead, this is seg boundary safe
 		jne             @@CompareNext
+		mov		si,0
+		inc		cx
+		mov		ds,cx
+                cmp             cx,0
+                jne             @@CompareNext           ; cx will overflow at 1MB
 		pop             ds
-                popf                                    ; Enable interrupts
+		popf                                    ; Enable interrupts
 
 		; Check we've got a BIOS with RTC support
 		call            DetectRTC

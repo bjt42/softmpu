@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -23,23 +23,26 @@
 ; RTC, SB DMA, DOS exec and IRQ watchdog interrupt handlers
 ;
 
-IntStackSize    EQU             0100h                   ; 256 byte stack for handler
-IntStack        DB              IntStackSize DUP (?)    ; Declare stack array
-IntSP           EQU             (OFFSET IntStack)+IntStackSize
+LocalStackSize  EQU             0100h                   ; 256 byte stack for handlers
+LocalStack      DB              LocalStackSize DUP (?)  ; Declare stack array
+LocalSP         EQU             (OFFSET LocalStack)+LocalStackSize
 
 SavedSS         DW              ?
 SavedBP         DW              ?
 SavedSP         DW              ?
 SavedAX         DW              ?
+SavedBX         DW              ?                       ; Used by QEMM port handler
 SavedDX         DW              ?
 
-Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via cs
+                ASSUME          ds:_DATA                ; Access local vars via cs
 
-                ; Ensure interrupts are disabled, in case something's chained us
+Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 ; MPU functions aren't reentrant
                 cli
 
                 ; Save current stack + a scratch reg
+                ; Share a stack with the QEMM port handler
+                ; This should be safe as one should never interrupt the other
                 mov             SavedSS,ss
                 mov             SavedBP,bp
                 mov             SavedSP,sp
@@ -48,9 +51,9 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 ; Set local stack
                 mov             ax,cs
                 mov             ss,ax
-                mov             ax,OFFSET IntStack
+                mov             ax,OFFSET LocalStack
                 mov             bp,ax
-                mov             ax,IntSP
+                mov             ax,LocalSP
                 mov             sp,ax
 
                 ; Disable virtualised port access
@@ -98,9 +101,7 @@ Int70Handler:   ASSUME          ds:_DATA                ; Access local vars via 
                 mov             ax,SavedAX
                 iret                                    ; Will restore int flag
 
-SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via cs
-
-                ; Early out if required
+SBIntHandler:   ; Early out if required
                 pushf
                 cmp             SBIRQGen,1
                 je              @@SBIntHandler2
@@ -144,9 +145,7 @@ SBIntHandler:   ASSUME          ds:_DATA                ; Access local vars via 
                 popf
                 jmp             OldSBISR
 
-TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via cs
-
-                ; Call chained ISR first
+TimerIntHandler:; Call chained ISR first
                 pushf
                 call            OldTimerISR
 
@@ -171,9 +170,7 @@ TimerIntHandler:ASSUME          ds:_DATA                ; Access local vars via 
                 ; Chained ISR will have already sent an EOI
                 iret                                    ; Will restore int flag
 
-DOSIntHandler:  ASSUME          ds:_DATA                ; Access local vars via cs
-
-                ; Check for exec call (AH=04Bh,AL=00h)
+DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 pushf
                 cmp             ah,04Bh
                 jne             @@ExitISR3
