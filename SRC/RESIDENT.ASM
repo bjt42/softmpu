@@ -56,15 +56,13 @@ OldDOSISR       LABEL           DWORD
 OldDOSISRAddr   DW              ?
 OldDOSISRSeg    DW              ?                       ; Don't reorder these
 
-QPIEntry	LABEL		DWORD
-QPIAddr		DW              ?
-QPISeg		DW              ?                       ; Don't reorder these
+QEMMInstalled   DB              0
+QPIEntry        DWORD           ?
 
 OldQEMMIOCB	LABEL		DWORD
 OldQEMMIOCBAddr	DW              ?
 OldQEMMIOCBSeg	DW              ?                       ; Don't reorder these
 
-QEMMInstalled   DB              0
 SBDetected      DB              0
 
 IDString        DB              '0S2M'                  ; Detection string
@@ -124,7 +122,6 @@ Start:          push            es
                 jc              @@EMMErr                ; Fail
                 mov             DataSelector,SEG _DATA  ; Save real-mode seg addr
 		pop		ds
-                INVOKE          MPU401_SetQEMMQPI,QPIEntry
                 jmp             @@InitSoftMPU           ; Init MPU lib
 
 @@EMMErr:       push            es
@@ -132,7 +129,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,SBPortAddr,SBIRQ,MPUDataPortAddr,DelaySysex,FakeAllNotesOff
+@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

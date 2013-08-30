@@ -125,7 +125,7 @@ static struct {
 } mpu;
 
 /* SOFTMPU: Global QEMM interface parameters accessed from MIDI_PlayMsg */
-qemmQPI qemm = { false, 0 }; /* Disabled by default */
+QEMMInfo qemm = { false, NULL }; /* Disabled by default */
 
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
@@ -158,7 +158,7 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                         cmp     qemm.installed,1
                         jne     UntrappedIn
                         mov     ax,01A00h               ; QPI_UntrappedIORead
-                        call    qemm.QPIEntry           ; Result in bl
+                        call    qemm.qpi_entry          ; Result in bl
                         mov     al,bl
                         _emit   0A8h                    ; Emit test al,(next opcode byte)
                                                         ; Effectively skips next instruction
@@ -694,8 +694,12 @@ void MPU401_SetEnableSBIRQ(bool enable)
 }
 
 /* SOFTMPU: Initialisation */
-void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
 {
+        /* Store QEMM parameters */
+        qemm.installed=(NULL!=qpientry);
+        qemm.qpi_entry=qpientry;
+
 	/* Initalise PIC code */
 	PIC_Init();
 
@@ -715,13 +719,6 @@ void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakealln
 
         /* SOFTMPU: Moved IRQ 9 handler init to asm */
 	MPU401_Reset();
-}
-
-/* SOFTMPU: Set QEMM interface parameters */
-void MPU401_SetQEMMQPI(Bit32 entry)
-{
-        qemm.installed=true;
-        qemm.QPIEntry=entry;
 }
 
 /* DOSBox initialisation code */

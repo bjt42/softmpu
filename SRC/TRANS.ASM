@@ -217,31 +217,35 @@ Init:           ; Ensure ds=cs
                 int             021h                    ; Close file
                 popf
                 jc              @@NoEMM
-                push            es                      ; Get old IO callback address
-		mov		ax,01A06h
+                mov             ah,03h                  ; QPI_GetVersion
+                call            es:QPIEntry
+                cmp             bx,0703h                ; Require QEMM >= 7.03
+                jl              @@NoEMM
+                push            es
+                mov             ax,01A06h               ; QPI_GetIOCallback
 		call		es:QPIEntry
 		mov		ax,es
 		mov		bx,di
 		pop		es
                 mov             es:OldQEMMIOCBSeg,ax
                 mov             es:OldQEMMIOCBAddr,bx
-
-                ; Set QEMM flag
-                mov             es:QEMMInstalled,1
+                mov             es:QEMMInstalled,1      ; Set QEMM flag
                 jmp             @@FoundEMM
 
-@@CheckEMM:     mov             ax,03D00h               ; Open file R/O
+@@CheckEMM:     ; Check if EMM386 is loaded
+                mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice
                 int             021h                    ; Get handle
-                jnc             @@CheckVersion
+                jnc             @@CheckEMMVersion
                 mov             ax,03D00h               ; Open file R/O
                 mov             dx,OFFSET EMMDevice2
                 int             021h                    ; Get handle
                 jc              @@NoEMM                 ; Fail
-@@CheckVersion: mov             bx,ax
-                mov             ax,04402h               ; Get manager version
-                mov             cx,02h
+@@CheckEMMVersion:
+                mov             bx,ax
                 mov             dx,OFFSET EMMVersion
+                mov             cx,02h
+                mov             ax,04402h               ; Get manager version
                 int             021h
                 pushf                                   ; Save error flag
                 mov             ah,03Eh                 ; Close file

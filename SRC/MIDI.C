@@ -117,7 +117,7 @@ static struct {
 Bitu MIDI_sysex_delay;
 
 /* SOFTMPU: Initialised in mpu401.c */
-extern qemmQPI qemm;
+extern QEMMInfo qemm;
 
 static void PlayMsg(Bit8u* msg,Bitu len)
 {
@@ -136,7 +136,7 @@ static void PlayMsg(Bit8u* msg,Bitu len)
                         jne     WaitDRRUntrappedIN
 			push	bx
                         mov     ax,01A00h               ; QPI_UntrappedIORead
-			call	qemm.QPIEntry
+                        call    qemm.qpi_entry
 			mov	al,bl
 			pop	bx
                         _emit   0A8h                    ; Emit test al,(next opcode byte)
@@ -152,7 +152,7 @@ static void PlayMsg(Bit8u* msg,Bitu len)
 			push 	bx
                         mov     bl,al                   ; bl = value
                         mov     ax,01A01h               ; QPI_UntrappedIOWrite
-			call	qemm.QPIEntry
+                        call    qemm.qpi_entry
 			pop	bx
                         _emit   0A8h                    ; Emit test al,(next opcode byte)
                                                         ; Effectively skips next instruction

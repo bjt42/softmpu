@@ -28,11 +28,11 @@
 
 #ifndef EXPORT_H
 
+#define NULL 0 /* SOFTMPU */
 #define RTCFREQ 4000 /* SOFTMPU: RTC interrupt frequency */
 
 typedef unsigned char Bit8u;
 typedef unsigned int Bitu;
-typedef long Bit32;
 
 typedef enum bool {false = 0,true = 1} bool;
 typedef enum EventID {MPU_EVENT,RESET_DONE,EOI_HANDLER,NUM_EVENTS} EventID;
@@ -40,14 +40,13 @@ typedef enum EventID {MPU_EVENT,RESET_DONE,EOI_HANDLER,NUM_EVENTS} EventID;
 /* SOFTMPU: QEMM interface parameters */
 typedef struct {
         bool installed;
-        Bit32 QPIEntry;
-} qemmQPI;
+        void far* qpi_entry;
+} QEMMInfo;
 
 /* Interface functions */
 void PIC_Update(bool blocking);
 
-void MPU401_Init(Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
-void MPU401_SetQEMMQPI(Bit32 entry);
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
 void MPU401_SetEnableSBIRQ(bool enable);
 Bitu MPU401_ReadStatus(void);
 void MPU401_WriteCommand(Bitu val);
