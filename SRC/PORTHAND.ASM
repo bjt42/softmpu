@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt
+; Copyright (C) 2013 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -27,12 +27,49 @@ HookedGDT       DB              0                       ; Have we munged the GDT
 DataSelector    DW              ?                       ; Data segment selector
 ReturnByte      DB              ?                       ; Temporary storage for return vals
 
+QEMMPortHandler:ASSUME          ds:_DATA                ; RM handler, access local vars via cs
+
+                cmp             dx,MPUDataPortAddr
+                je              @@QEMMPortHandler2
+                cmp             dx,MPUCmdPortAddr
+                je              @@QEMMPortHandler2
+                jmp             OldQEMMIOCB
+
+@@QEMMPortHandler2:
+                ; QEMM passes the caller's stack
+                ; Might be too small so we'll switch to our own
+                ; Might also pass the caller's flags so disable interrupts
+                pushf
+                cli
+
+                ; Save current stack + a scratch reg
+                ; Share a stack with the RTC handler
+                ; This should be safe as one should never interrupt the other
+                mov             SavedSS,ss
+                mov             SavedBP,bp
+                mov             SavedSP,sp
+                mov             SavedBX,bx
+
+                ; Set local stack
+                mov             bx,cs
+                mov             ss,bx
+                mov             bx,OFFSET LocalStack
+                mov             bp,bx
+                mov             bx,LocalSP
+                mov             sp,bx
+
+                ; Ensure ds=cs
+                push            ds
+                mov             bx,cs
+                mov             ds,bx
+                jmp             @@SetDataSel
+
 PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read data from cs
 		
 		; EMM386 appears to set up a nice 4K stack for the handler
 		; So we won't worry about a context switch...
-		; Interrupts are disabled already in here as well        
-		; If we're inside the interrupt handler, pass through port access
+                ; Interrupts are disabled already in here as well
+                ; If we're inside the interrupt handler, pass through port access
                 cmp             VirtualisePorts,1
 		je              @@PortHandler2
 		stc                                     ; Don't virtualise
@@ -91,20 +128,24 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
 		mov             ds,DataSelector         ; Set ds so we can read from _DATA
 
 		; Test for input/output
-		test            ecx,ecx
-		jz              @@HandleInput
+@@HandlePort:   test            cl,cl
+                jz              @@HandleInput
 
-		; Handle output
+                ; Handle output
 		cmp             dx,bx
 		jne             @@WriteCommand
 		INVOKE          MPU401_WriteData,al
 		pop             ds
                 popa
+                cmp             QEMMInstalled,1
+                je              @@ExitHandlerVirtQEMM
 		jmp             @@ExitHandlerVirt
 
 @@WriteCommand: INVOKE          MPU401_WriteCommand,al
 		pop             ds
                 popa
+                cmp             QEMMInstalled,1
+                je              @@ExitHandlerVirtQEMM
 		jmp             @@ExitHandlerVirt
 
 @@HandleInput:  cmp             dx,bx
@@ -114,6 +155,8 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
                 mov             ReturnByte,al
                 popa
                 mov             al,ReturnByte
+                cmp             QEMMInstalled,1
+                je              @@ExitHandlerVirtQEMM
 		jmp             @@ExitHandlerVirt
 
 @@ReadStatus:   INVOKE          MPU401_ReadStatus       ; Result in ax
@@ -122,5 +165,25 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
                 popa
                 mov             al,ReturnByte
 @@ExitHandlerVirt:
+                cmp             QEMMInstalled,1
+                je              @@ExitHandlerVirtQEMM
 		clc                                     ; Always virtualised so don't call original handler
 		retf
+
+@@ExitHandlerVirtQEMM:
+                ASSUME          ds:_DATA                ; RM handler, access local vars via cs
+
+                ; Clear up after QEMM handler
+                pop             ds
+
+                ; Restore local stack + scratch reg
+                mov             bx,SavedSS
+                mov             ss,bx
+                mov             bx,SavedBP
+                mov             bp,bx
+                mov             bx,SavedSP
+                mov             sp,bx
+                mov             bx,SavedBX
+                popf                                    ; Enable interrupts
+                clc
+                retf
