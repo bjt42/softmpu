@@ -69,6 +69,10 @@ Init:           ; Ensure ds=cs
 		je              @@SBIRQParam
 		cmp             eax,':qri'
 		je              @@SBIRQParam
+                cmp             eax,'MBS/'
+                je              @@EnableSBMIDI
+                cmp             eax,'mbs/'
+                je              @@EnableSBMIDI
 		cmp             eax,'LED/'              ; Check for delay switch
 		je              @@EnableDelay
 		cmp             eax,'led/'
@@ -81,6 +85,8 @@ Init:           ; Ensure ds=cs
                 jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
 		jmp             @@NextParam
+@@EnableSBMIDI: mov             es:SBMIDI,1             ; Enable SB-MIDI mode
+                jmp             @@NextParam
 
 @@MPUBaseParam: cmp             cx,7                    ; Command plus 3-digit port
 		jl              @@NextParam             ; Not enough chars left
@@ -309,7 +315,11 @@ Init:           ; Ensure ds=cs
 		int             021h
 		jmp             Terminate
 
-@@RTCOK:        ; Try to init the MPU interface and switch to UART mode
+@@RTCOK:        ; No HW MPU init for SB-MIDI mode
+                cmp             es:SBMIDI,1
+                je              @@SkipUART
+
+                ; Try to init the MPU interface and switch to UART mode
 		call            SwitchToUART
 		jnc             @@UARTOK
 
@@ -333,7 +343,7 @@ Init:           ; Ensure ds=cs
 		int             021h
 
                 ; Try to detect a Sound Blaster at the specified port & irq
-		call            DetectSB
+@@SkipUART:     call            DetectSB
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster
@@ -362,7 +372,11 @@ Init:           ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET SBSuccessEnd
 		int             021h
-                cmp             es:DelaySysex,0
+                cmp             es:SBMIDI,0
+                je              @@NoSBMIDI
+                mov             dx,OFFSET SBMIDIEnabled
+                int             021h
+@@NoSBMIDI:     cmp             es:DelaySysex,0
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
