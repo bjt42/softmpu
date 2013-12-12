@@ -63,6 +63,10 @@
 ;
 ; - QEMM support (requires version 7.03+)
 ;
+; 1.7
+;
+; - SB-MIDI support (disables interrupt generation)
+;
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init

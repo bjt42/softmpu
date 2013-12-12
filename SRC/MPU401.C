@@ -153,7 +153,27 @@ static void ClrQueue(void) {
 Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	Bit8u retval=0x3f; /* Bits 6 and 7 clear */
 
-        if (!MIDI_sbmidi)
+        if (MIDI_sbmidi)
+        {
+                /* SOFTMPU: Reflect hardware WBS */
+                _asm
+                {
+                                mov     dx,mpu.sbport
+                                add     dx,0Ch                  ; Select DSP write port
+                                cmp     qemm.installed,1
+                                jne     UntrappedIn
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry          ; Result in bl
+                                mov     al,bl
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+
+                UntrappedIn:    in      al,dx
+                                shr     al,1
+                                and     al,040h
+                                or      retval,al
+                }
+        }
+        else
         {
                 /* SOFTMPU: Reflect hardware DRR */
                 _asm
@@ -161,13 +181,13 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                                 mov     dx,mpu.mpuport
                                 inc     dx
                                 cmp     qemm.installed,1
-                                jne     UntrappedIn
+                                jne     UntrappedIn2
                                 mov     ax,01A00h               ; QPI_UntrappedIORead
                                 call    qemm.qpi_entry          ; Result in bl
                                 mov     al,bl
                                 _emit   0A8h                    ; Emit test al,(next opcode byte)
                                                                 ; Effectively skips next instruction
-                UntrappedIn:    in      al,dx
+                UntrappedIn2:   in      al,dx
                                 and     al,040h
                                 or      retval,al
                 }

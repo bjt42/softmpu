@@ -136,15 +136,55 @@ static void PlayMsg_SBMIDI(Bit8u* msg,Bitu len)
                         add     dx,0Ch                  ; Select DSP write port
 	NextByte:       cmp     bx,cx
 			je      End
-        WaitWBS:        in      al,dx
+        WaitWBS:        cmp     qemm.installed,1
+                        jne     WaitWBSUntrappedIN
+			push	bx
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+                        call    qemm.qpi_entry
+			mov	al,bl
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBSUntrappedIN:
+                        in      al,dx
                         or      al,al
                         js      WaitWBS
                         mov     al,038h                 ; Normal mode MIDI output
+                        cmp     qemm.installed,1
+                        jne     WaitWBSUntrappedOUT
+			push 	bx
+                        mov     bl,al                   ; bl = value
+                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
+                        call    qemm.qpi_entry
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBSUntrappedOUT:
                         out     dx,al
-        WaitWBS2:       in      al,dx
+        WaitWBS2:       cmp     qemm.installed,1
+                        jne     WaitWBS2UntrappedIN
+			push	bx
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+                        call    qemm.qpi_entry
+			mov	al,bl
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBS2UntrappedIN:
+                        in      al,dx
                         or      al,al
                         js      WaitWBS2
 			mov     al,[bx]
+                        cmp     qemm.installed,1
+                        jne     WaitWBS2UntrappedOUT
+			push 	bx
+                        mov     bl,al                   ; bl = value
+                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
+                        call    qemm.qpi_entry
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBS2UntrappedOUT:
 			out     dx,al
                         inc     bx
 			jmp     NextByte

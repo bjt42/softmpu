@@ -1,17 +1,17 @@
 -----------------------------------------
-SoftMPU 1.6 - Software MPU-401 Emulator
+SoftMPU 1.7 - Software MPU-401 Emulator
 -----------------------------------------
 Copyright (C) 2013        bjt, elianda
 Copyright (C) 2002-2013   The DOSBox Team
 -----------------------------------------
 
-Release Notes (30/08/13)
+Release Notes (12/12/13)
 
 WHAT IS IT?
 
 SoftMPU is a DOS TSR that emulates an 'intelligent mode' hardware MPU-401
-interface. It's designed to work in tandem with the MPU interface found on
-the Sound Blaster 16 and other common sound cards.
+interface. It's designed to work in tandem with the MIDI interfaces found on
+Sound Blaster and other common sound cards.
 
 WHY'S THIS USEFUL?
 
@@ -20,21 +20,24 @@ MT-32/CM-32L often expect to find a hardware MPU interface that supports
 'intelligent mode'. These are now expensive and difficult to find.
 
 By supporting the 'intelligent mode' features in software, these games will
-work with the basic MPU interface found on sound cards.
+work with the basic MIDI interfaces found on sound cards.
 
 REQUIREMENTS
 
 - EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+ must be loaded
-- Sound Blaster (or compatible) sound card with an MPU-401 interface
-  supporting UART mode (e.g. Sound Blaster 16/AWE, Yamaha YMF71x)
+- Sound Blaster (or compatible) sound card
 - Roland LA synth (e.g. MT-32, CM-32L) or a sound card with MT-32 emulation
 
 USING SOFTMPU
 
 Run SoftMPU specifying the base I/O port address and interrupt of your Sound
-Blaster, and the base I/O port address of your hardware MPU interface, e.g.
+Blaster, and the base I/O port address of the MPU interface, e.g.
 
   SOFTMPU.EXE /SB:220 /IRQ:5 /MPU:330
+
+The optional /SBMIDI switch forces Sound Blaster MIDI to be used. This mode
+is intended for use with the Sound Blaster Pro 2 and other sound cards
+without a hardware MPU interface. Game compatibility may be reduced.
 
 The optional /DELAYSYSEX switch enables small transmission delays to prevent
 buffer overflow with the Rev.0 MT-32.
@@ -55,6 +58,10 @@ Problem:  Some games expect to find an MPU interface on IRQ 2, but my sound
           card doesn't support it.
 Solution: Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
           maybe others too.
+
+Problem:  SoftMPU can't find a hardware MPU interface when using a Sound
+          Blaster Pro 2 or older sound card.
+Solution: Run SoftMPU with the /SBMIDI switch.
 
 Problem:  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback
           sounds incorrect.
