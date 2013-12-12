@@ -37,6 +37,7 @@ CmdHandlerAddr  DW              OFFSET PortHandler
 
 SBPortAddr      DW              0
 SBIRQ           DB              0
+SBMIDI          DB              0
 DelaySysex      DB              0
 FakeAllNotesOff DB              0
 
@@ -129,7 +130,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,DelaySysex,FakeAllNotesOff
+@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SBMIDI,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

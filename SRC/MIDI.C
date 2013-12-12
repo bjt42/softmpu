@@ -59,7 +59,7 @@ typedef int Bits;
 #define MAX_TRACKED_CHANNELS 16
 #define MAX_TRACKED_NOTES 8
 
-static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.6    \x27\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.7    \x26\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_note_off[3] = { 0x80,0x00,0x00 }; /* SOFTMPU */
 
@@ -97,6 +97,7 @@ channel tracked_channels[MAX_TRACKED_CHANNELS];
 
 static struct {
 	Bitu mpuport;
+        Bitu sbport;
 	Bitu status;
 	Bitu cmd_len;
 	Bitu cmd_pos;
@@ -116,11 +117,91 @@ static struct {
 /* SOFTMPU: Sysex delay is decremented from PIC_Update */
 Bitu MIDI_sysex_delay;
 
+/* SOFTMPU: Also used by MPU401_ReadStatus */
+bool MIDI_sbmidi;
+
 /* SOFTMPU: Initialised in mpu401.c */
 extern QEMMInfo qemm;
 
+static void PlayMsg_SBMIDI(Bit8u* msg,Bitu len)
+{
+        /* Output a MIDI message to the hardware using SB-MIDI */
+        /* Wait for WBS clear, then output a byte */
+	_asm
+	{
+			mov     bx,msg
+			mov     cx,len                  ; Assume len < 2^16
+			add     cx,bx                   ; Get end ptr
+                        mov     dx,midi.sbport
+                        add     dx,0Ch                  ; Select DSP write port
+	NextByte:       cmp     bx,cx
+			je      End
+        WaitWBS:        cmp     qemm.installed,1
+                        jne     WaitWBSUntrappedIN
+			push	bx
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+                        call    qemm.qpi_entry
+			mov	al,bl
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBSUntrappedIN:
+                        in      al,dx
+                        or      al,al
+                        js      WaitWBS
+                        mov     al,038h                 ; Normal mode MIDI output
+                        cmp     qemm.installed,1
+                        jne     WaitWBSUntrappedOUT
+			push 	bx
+                        mov     bl,al                   ; bl = value
+                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
+                        call    qemm.qpi_entry
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBSUntrappedOUT:
+                        out     dx,al
+        WaitWBS2:       cmp     qemm.installed,1
+                        jne     WaitWBS2UntrappedIN
+			push	bx
+                        mov     ax,01A00h               ; QPI_UntrappedIORead
+                        call    qemm.qpi_entry
+			mov	al,bl
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBS2UntrappedIN:
+                        in      al,dx
+                        or      al,al
+                        js      WaitWBS2
+			mov     al,[bx]
+                        cmp     qemm.installed,1
+                        jne     WaitWBS2UntrappedOUT
+			push 	bx
+                        mov     bl,al                   ; bl = value
+                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
+                        call    qemm.qpi_entry
+			pop	bx
+                        _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                        ; Effectively skips next instruction
+        WaitWBS2UntrappedOUT:
+			out     dx,al
+                        inc     bx
+			jmp     NextByte
+
+                        ; Nothing more to send
+	End:            nop
+	}
+};
+
 static void PlayMsg(Bit8u* msg,Bitu len)
 {
+        /* Pass through for SB-MIDI mode */
+        if (MIDI_sbmidi)
+        {
+                return PlayMsg_SBMIDI(msg,len);
+        }
+
 	/* Output a MIDI message to the hardware */
 	/* Wait for DRR clear, then output a byte */
 	_asm
@@ -313,7 +394,7 @@ bool MIDI_Available(void)  {
 }
 
 /* SOFTMPU: Initialisation */
-void MIDI_Init(Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
+void MIDI_Init(Bitu mpuport,Bitu sbport,bool sbmidi,bool delaysysex,bool fakeallnotesoff)
 {
         Bitu i; /* SOFTMPU */
 	midi.sysex.delay = 0;
@@ -326,11 +407,13 @@ void MIDI_Init(Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
 		/*LOG_MSG("MIDI:Using delayed SysEx processing");*/ /* SOFTMPU */
 	}
 	midi.mpuport=mpuport;
+        midi.sbport=sbport;
 	midi.status=0x00;
 	midi.cmd_pos=0;
 	midi.cmd_len=0;
         midi.fakeallnotesoff=fakeallnotesoff;
         midi.available=true;
+        MIDI_sbmidi=sbmidi;
 
         /* SOFTMPU: Display welcome message on MT-32 */
         for (i=0;i<30;i++)

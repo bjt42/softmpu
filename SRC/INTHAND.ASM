@@ -181,12 +181,14 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 cli
 
                 ; Default settings
+                push            eax
                 mov             SBEOI,1                 ; Enable SB EOI
-                mov             SBIRQGen,1              ; Enable SB IRQ generation
+                mov             al,SBMIDI
+                xor             al,01h
+                mov             SBIRQGen,al             ; Never generate interrupts in SB-MIDI mode
 
                 ; Parse filename for app detection substrings
                 push            si
-                push            eax
                 push            ebx
                 mov             si,dx
 		cld                                     ; Auto increment si
@@ -220,8 +222,8 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 sub             si,3                    ; Only step a byte at a time
                 jmp             @@ParseFilename         ; Next char
 @@ExitISR2:     pop             ebx                     
-                pop             eax                     ; Finished parsing
                 pop             si
+                pop             eax                     ; Finished parsing
 
                 ; Now commit our changes
                 pusha

@@ -52,7 +52,7 @@ void PIC_SetIRQMask(Bitu irq,bool masked);
 void PIC_AddEvent(EventID event,Bitu delay);
 void PIC_RemoveEvents(EventID event);
 
-void MIDI_Init(Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
+void MIDI_Init(Bitu mpuport,Bitu sbport,bool sbmidi,bool delaysysex,bool fakeallnotesoff);
 void MIDI_RawOutByte(Bit8u data);
 bool MIDI_Available(void);
 
@@ -127,6 +127,9 @@ static struct {
 /* SOFTMPU: Global QEMM interface parameters accessed from MIDI_PlayMsg */
 QEMMInfo qemm = { false, NULL }; /* Disabled by default */
 
+/* SOFTMPU: Sound Blaster MIDI toggle */
+extern MIDI_sbmidi;
+
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
         if (mpu.queue_used==0 && mpu.intelligent && mpu.generate_irqs) {
@@ -150,22 +153,45 @@ static void ClrQueue(void) {
 Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	Bit8u retval=0x3f; /* Bits 6 and 7 clear */
 
-	/* SOFTMPU: Reflect hardware DRR */
-	_asm
-	{
-                        mov     dx,mpu.mpuport
-                        inc     dx
-                        cmp     qemm.installed,1
-                        jne     UntrappedIn
-                        mov     ax,01A00h               ; QPI_UntrappedIORead
-                        call    qemm.qpi_entry          ; Result in bl
-                        mov     al,bl
-                        _emit   0A8h                    ; Emit test al,(next opcode byte)
-                                                        ; Effectively skips next instruction
-        UntrappedIn:    in      al,dx
-                        and     al,040h
-                        or      retval,al
-	}
+        if (MIDI_sbmidi)
+        {
+                /* SOFTMPU: Reflect hardware WBS */
+                _asm
+                {
+                                mov     dx,mpu.sbport
+                                add     dx,0Ch                  ; Select DSP write port
+                                cmp     qemm.installed,1
+                                jne     UntrappedIn
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry          ; Result in bl
+                                mov     al,bl
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+
+                UntrappedIn:    in      al,dx
+                                shr     al,1
+                                and     al,040h
+                                or      retval,al
+                }
+        }
+        else
+        {
+                /* SOFTMPU: Reflect hardware DRR */
+                _asm
+                {
+                                mov     dx,mpu.mpuport
+                                inc     dx
+                                cmp     qemm.installed,1
+                                jne     UntrappedIn2
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry          ; Result in bl
+                                mov     al,bl
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                                ; Effectively skips next instruction
+                UntrappedIn2:   in      al,dx
+                                and     al,040h
+                                or      retval,al
+                }
+        }
 	if (mpu.state.cmd_pending) retval|=0x40;
 	if (!mpu.queue_used) retval|=0x80;
 
@@ -694,7 +720,7 @@ void MPU401_SetEnableSBIRQ(bool enable)
 }
 
 /* SOFTMPU: Initialisation */
-void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff)
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmidi,bool delaysysex,bool fakeallnotesoff)
 {
         /* Store QEMM parameters */
         qemm.installed=(NULL!=qpientry);
@@ -704,7 +730,7 @@ void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool delay
 	PIC_Init();
 
 	/* Initialise MIDI handler */
-        MIDI_Init(mpuport,delaysysex,fakeallnotesoff);
+        MIDI_Init(mpuport,sbport,sbmidi,delaysysex,fakeallnotesoff);
 	if (!MIDI_Available()) return;
 
 	mpu.queue_used=0;

@@ -46,7 +46,7 @@ typedef struct {
 /* Interface functions */
 void PIC_Update(bool blocking);
 
-void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool delaysysex,bool fakeallnotesoff);
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmidi,bool delaysysex,bool fakeallnotesoff);
 void MPU401_SetEnableSBIRQ(bool enable);
 Bitu MPU401_ReadStatus(void);
 void MPU401_WriteCommand(Bitu val);
