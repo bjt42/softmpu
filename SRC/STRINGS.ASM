@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.7 ',0FEh,' Software MPU-401 Emulator  ',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU X.X ',0FEh,' Software MPU-401 Emulator  ',0B3h,0Dh,0Ah
                 DB              0B3h,'                                         ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013        bjt, elianda   ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013   The DOSBox Team',0B3h,0Dh,0Ah
