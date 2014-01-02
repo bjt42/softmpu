@@ -56,6 +56,12 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 mov             ax,LocalSP
                 mov             sp,ax
 
+                ; Early out if required
+                pushf
+                cmp             SBIRQGen,0
+                je              @@NoUpdate
+                popf
+
                 ; Disable virtualised port access
                 mov             VirtualisePorts,0
                 
@@ -75,7 +81,7 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 
                 ; Interrupts are still disabled
                 ; Read status register C to clear pending interrupt
-                mov             al,0Ch
+@@NoUpdate:     mov             al,0Ch
                 or              al,080h                 ; Disable NMI
                 out             070h,al
                 jmp             SHORT $+2               ; Short pause
@@ -111,22 +117,14 @@ SBIntHandler:   ; Early out if required
                 ; Ensure interrupts are disabled, in case something's chained us
 @@SBIntHandler2:cli
 
-                ; Save scratch registers
-                mov             SavedAX,ax
-                mov             SavedDX,dx
-
                 ; Set detection flag
-                mov             dx,SBPortAddr
-                add             dx,4                    ; Mixer register port
-                mov             al,082h                 ; Interrupt status register index
-                out             dx,al
-                inc             dx                      ; Mixer data port
-                in              al,dx                   ; Get interrupt status
-                test            al,01h                  ; 8-bit IRQ flag
-                jz              @@ExitISR               ; Was the interrupt meant for us?
                 mov             SBDetected,1            ; Signal detection success
                 cmp             SBEOI,0                 ; Do we want to EOI?
                 je              @@ExitISR
+
+                ; Save scratch registers
+                mov             SavedAX,ax
+                mov             SavedDX,dx
 
                 ; Acknowledge interrupt
                 mov             dx,SBPortAddr
@@ -140,9 +138,9 @@ SBIntHandler:   ; Early out if required
 @@FirstPIC:     out             020h,al                 ; Send to primary PIC
 
                 ; Restore scratch registers
-@@ExitISR:      mov             ax,SavedAX
+                mov             ax,SavedAX
                 mov             dx,SavedDX
-                popf
+@@ExitISR:      popf
                 jmp             OldSBISR
 
 TimerIntHandler:; Call chained ISR first
@@ -181,15 +179,30 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 cli
 
                 ; Default settings
+                push            eax
                 mov             SBEOI,1                 ; Enable SB EOI
-                mov             SBIRQGen,1              ; Enable SB IRQ generation
+;                mov             al,SBMIDI
+;                xor             al,01h
+;                mov             SBIRQGen,al             ; Never generate interrupts in SB-MIDI mode
+                mov             SBIRQGen,0
 
                 ; Parse filename for app detection substrings
                 push            si
-                push            eax
                 push            ebx
                 mov             si,dx
 		cld                                     ; Auto increment si
+
+                ;int             03h                     ; BREAK
+                push            ax
+                push            dx
+                mov             dx,08A00h
+                mov             ax,dx
+                out             dx,ax
+                mov             ax,08AE0h
+                out             dx,ax                   ; BREAK
+                pop             dx
+                pop             ax
+
 @@ParseFilename:lodsd                                   ; Get a dword from the filename
                 cmp             al,0                    ; Check for null terminator
                 je              @@ExitISR2
@@ -213,15 +226,30 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 je              @@NextChar
                 cmp             eax,ebx
                 je              @@DisableIRQGen         ; Found a match
+                xor             ebx,0202020h            ; Invert comparison case
+                cmp             eax,ebx
+                je              @@DisableIRQGen         ; Found a match
                 jmp             @@ParseAppStrings
-@@DisableIRQGen:mov             SBIRQGen,0              ; Disable SB interrupts
+@@DisableIRQGen:
+
+                push            ax
+                push            dx
+                mov             dx,08A00h
+                mov             ax,dx
+                out             dx,ax
+                mov             ax,08AE0h
+                out             dx,ax                   ; BREAK
+                pop             dx
+                pop             ax
+
+                mov             SBIRQGen,1              ; Disable SB interrupts
 @@NextChar:     pop             si
                 pop             ds
                 sub             si,3                    ; Only step a byte at a time
                 jmp             @@ParseFilename         ; Next char
 @@ExitISR2:     pop             ebx                     
-                pop             eax                     ; Finished parsing
                 pop             si
+                pop             eax                     ; Finished parsing
 
                 ; Now commit our changes
                 pusha

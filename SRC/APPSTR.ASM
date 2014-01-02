@@ -24,9 +24,15 @@
 ;
 
                 ; Disable SB interrupts for these intelligent mode apps
-AppIDStrings    DB              'FB.E'                  ; Flashback
-                DB              'MM3.'                  ; Might and Magic III
-                DB              'SOC.'                  ; Sensible Soccer
-                DB              'UNVG'                  ; Waxworks
-                DB              'WC2.'                  ; Wing Commander II
+AppIDStrings    DB              'SER.'
+                DB              'UAD.'
+                DB              'BCC.'
+                DB              'RO1.'
+                DB              'RO2.'
+                DB              'RO3.'
+;DB              'FB.E'                  ; Flashback
+;                DB              'MM3.'                  ; Might and Magic III
+;                DB              'SOC.'                  ; Sensible Soccer
+;                DB              'UNVG'                  ; Waxworks
+;                DB              'WC2.'                  ; Wing Commander II
                 DB              00h                     ; End

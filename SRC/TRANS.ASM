@@ -343,7 +343,9 @@ Init:           ; Ensure ds=cs
 		int             021h
 
                 ; Try to detect a Sound Blaster at the specified port & irq
-@@SkipUART:     call            DetectSB
+@@SkipUART:     mov             es:SBIRQGen,1
+                call            DetectSB
+                mov             es:SBIRQGen,0
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster

@@ -43,7 +43,7 @@ FakeAllNotesOff DB              0
 
 VirtualisePorts DB              0                       ; Port virtualisation control
 SBEOI           DB              1                       ; SB ISR EOI control
-SBIRQGen        DB              1                       ; SB IRQ generation control
+SBIRQGen        DB              0                       ; SB IRQ generation control
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
