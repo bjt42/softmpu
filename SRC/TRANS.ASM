@@ -343,9 +343,7 @@ Init:           ; Ensure ds=cs
 		int             021h
 
                 ; Try to detect a Sound Blaster at the specified port & irq
-@@SkipUART:     mov             es:SBIRQGen,1
-                call            DetectSB
-                mov             es:SBIRQGen,0
+@@SkipUART:     call            DetectSB
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster
@@ -413,6 +411,12 @@ EMMOK:          ; Ensure ds=cs
                 mov             BYTE PTR ds:[si],1      ; Set busy flag
                 pop             ds
 
+                ; Disable RTC interrupts
+                in              al,0A1h
+                or              al,01h                  ; Set bit 0 = IRQ 8 (RTC)
+                jmp             SHORT $+2               ; Short pause
+                out             0A1h,al
+
 		; Register our new timer handler
 		mov             dx,OFFSET es:Int70Handler
 		push            ds
@@ -439,15 +443,6 @@ EMMOK:          ; Ensure ds=cs
 		shl             ax,8
 		mov             al,0Ah
 		call            WriteRTC
-
-                ; Enable RTC interrupts
-                pushf
-                cli                                     ; No interrupts while programming PIC
-                in              al,0A1h
-                and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
-                jmp             SHORT $+2               ; Short pause
-                out             0A1h,al
-                popf                                    ; Start RTC interrupts
 
 		; Print success message
 		mov             ah,9

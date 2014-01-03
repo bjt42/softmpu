@@ -713,7 +713,7 @@ void MPU401_SetEnableSBIRQ(bool enable)
         if (mpu.generate_irqs && !enable)
         {
                 // Acknowledge any waiting IRQ
-                //PIC_DeActivateIRQ(mpu.sbport);
+                PIC_DeActivateIRQ(mpu.sbport);
         }
 
         mpu.generate_irqs=enable;

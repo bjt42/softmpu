@@ -292,7 +292,7 @@ DetectRTC:      push            es
                 stc
                 retn                                    ; Failed to detect RTC
 
-InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) & 8 (RTC) remain unmasked
+InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) remains unmasked
                 ; Doesn't matter if the timer frequency is increased by another app later
                 ; Save the existing handler
 		push            es

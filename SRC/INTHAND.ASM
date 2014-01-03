@@ -107,15 +107,9 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 mov             ax,SavedAX
                 iret                                    ; Will restore int flag
 
-SBIntHandler:   ; Early out if required
+SBIntHandler:   ; Ensure interrupts are disabled, in case something's chained us
                 pushf
-                cmp             SBIRQGen,1
-                je              @@SBIntHandler2
-                popf
-                jmp             OldSBISR
-
-                ; Ensure interrupts are disabled, in case something's chained us
-@@SBIntHandler2:cli
+                cli
 
                 ; Set detection flag
                 mov             SBDetected,1            ; Signal detection success
@@ -181,28 +175,13 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 ; Default settings
                 push            eax
                 mov             SBEOI,1                 ; Enable SB EOI
-;                mov             al,SBMIDI
-;                xor             al,01h
-;                mov             SBIRQGen,al             ; Never generate interrupts in SB-MIDI mode
-                mov             SBIRQGen,0
+                mov             SBIRQGen,0              ; Disable SB IRQ generation
 
                 ; Parse filename for app detection substrings
                 push            si
                 push            ebx
                 mov             si,dx
 		cld                                     ; Auto increment si
-
-                ;int             03h                     ; BREAK
-                push            ax
-                push            dx
-                mov             dx,08A00h
-                mov             ax,dx
-                out             dx,ax
-                mov             ax,08AE0h
-                out             dx,ax                   ; BREAK
-                pop             dx
-                pop             ax
-
 @@ParseFilename:lodsd                                   ; Get a dword from the filename
                 cmp             al,0                    ; Check for null terminator
                 je              @@ExitISR2
@@ -213,7 +192,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 jmp             @@CheckIRQGen
 @@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
 
-@@CheckIRQGen:  ; Should we disable SB IRQ generation?
+@@CheckIRQGen:  ; Should we enable SB IRQ generation?
                 push            ds
                 push            si
                 mov             ebx,eax                 ; Save comparison string
@@ -225,30 +204,30 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 cmp             al,0                    ; Check for null terminator
                 je              @@NextChar
                 cmp             eax,ebx
-                je              @@DisableIRQGen         ; Found a match
+                je              @@EnableIRQGen          ; Found a match
                 xor             ebx,0202020h            ; Invert comparison case
                 cmp             eax,ebx
-                je              @@DisableIRQGen         ; Found a match
+                je              @@EnableIRQGen          ; Found a match
                 jmp             @@ParseAppStrings
-@@DisableIRQGen:
-
-                push            ax
-                push            dx
-                mov             dx,08A00h
-                mov             ax,dx
-                out             dx,ax
-                mov             ax,08AE0h
-                out             dx,ax                   ; BREAK
-                pop             dx
-                pop             ax
-
-                mov             SBIRQGen,1              ; Disable SB interrupts
+@@EnableIRQGen: mov             SBIRQGen,1              ; Enable SB interrupts
 @@NextChar:     pop             si
                 pop             ds
                 sub             si,3                    ; Only step a byte at a time
                 jmp             @@ParseFilename         ; Next char
-@@ExitISR2:     pop             ebx                     
+@@ExitISR2:     pop             ebx
                 pop             si
+
+                ; Never generate interrupts in SB-MIDI mode
+                mov             al,SBMIDI
+                xor             al,01h
+                and             SBIRQGen,al
+
+                ; Enable/disable RTC interrupts as well
+                in              al,0A1h
+                or              al,01h                  ; Set bit 0 = IRQ 8 (RTC)
+                xor             al,SBIRQGen
+                jmp             SHORT $+2               ; Short pause
+                out             0A1h,al
                 pop             eax                     ; Finished parsing
 
                 ; Now commit our changes
