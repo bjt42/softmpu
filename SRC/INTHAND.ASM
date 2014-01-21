@@ -56,12 +56,6 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 mov             ax,LocalSP
                 mov             sp,ax
 
-                ; Early out if required
-                pushf
-                cmp             SBIRQGen,0
-                je              @@NoUpdate
-                popf
-
                 ; Disable virtualised port access
                 mov             VirtualisePorts,0
                 
@@ -81,7 +75,7 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 
                 ; Interrupts are still disabled
                 ; Read status register C to clear pending interrupt
-@@NoUpdate:     mov             al,0Ch
+                mov             al,0Ch
                 or              al,080h                 ; Disable NMI
                 out             070h,al
                 jmp             SHORT $+2               ; Short pause

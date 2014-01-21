@@ -364,9 +364,13 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET SBSuccessStart
 		int             021h
+                mov             dx,OFFSET SBDSPVer
+		int             021h
+                mov             dx,OFFSET SBSuccessMid1
+		int             021h
 		mov             dx,OFFSET SBPortNum
 		int             021h
-		mov             dx,OFFSET SBSuccessMid
+                mov             dx,OFFSET SBSuccessMid2
 		int             021h
 		mov             dx,OFFSET SBIRQNum
 		int             021h
