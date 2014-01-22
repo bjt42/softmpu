@@ -44,6 +44,7 @@ FakeAllNotesOff DB              0
 VirtualisePorts DB              0                       ; Port virtualisation control
 SBEOI           DB              1                       ; SB ISR EOI control
 SBIRQGen        DB              0                       ; SB IRQ generation control
+MPUVerFix       DB              0                       ; MPU version fix for Gateway
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?

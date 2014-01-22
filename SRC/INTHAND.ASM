@@ -138,6 +138,9 @@ TimerIntHandler:; Call chained ISR first
                 ; Ensure interrupts are disabled, in case something's chained us
                 cli
 
+                ; DEBUG
+                iret
+
                 ; Save scratch registers
                 mov             SavedAX,ax
 
@@ -170,6 +173,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 push            eax
                 mov             SBEOI,1                 ; Enable SB EOI
                 mov             SBIRQGen,0              ; Disable SB IRQ generation
+                mov             MPUVerFix,0             ; Disable MPU version fix for Gateway
 
                 ; Parse filename for app detection substrings
                 push            si
@@ -183,8 +187,23 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 ; Should we disable EOI?
                 cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
                 je              @@DisableSBEOI
-                jmp             @@CheckIRQGen
+                cmp             eax,'.egu'
+                jne             @@CheckMPUVerFix
 @@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
+
+@@CheckMPUVerFix:
+                ; Should we enable the Gateway MPU version fix?
+                ; See www.vogons.org/viewtopic.php?f=32&t=38044
+                cmp             eax,'.ETA'              ; Gateway (GATE.EXE)
+                je              @@EnableMPUVerFix
+                cmp             eax,'.eta'
+                je              @@EnableMPUVerFix
+                cmp             eax,'.NIA'              ; Gateway (MAIN.EXE)
+                je              @@EnableMPUVerFix
+                cmp             eax,'.nia'
+                jne             @@CheckIRQGen
+@@EnableMPUVerFix:
+                mov             MPUVerFix,1             ; Enable MPU version fix for Gateway
 
 @@CheckIRQGen:  ; Should we enable SB IRQ generation?
                 push            ds
@@ -199,7 +218,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 je              @@NextChar
                 cmp             eax,ebx
                 je              @@EnableIRQGen          ; Found a match
-                xor             ebx,0202020h            ; Invert comparison case
+                xor             eax,0202020h            ; Invert comparison case
                 cmp             eax,ebx
                 je              @@EnableIRQGen          ; Found a match
                 jmp             @@ParseAppStrings
@@ -218,8 +237,10 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
 
                 ; Enable/disable RTC interrupts as well
                 in              al,0A1h
+                mov             ah,SBIRQGen
+                or              ah,DelaySysex           ; DelaySysex requires RTC interrupts
                 or              al,01h                  ; Set bit 0 = IRQ 8 (RTC)
-                xor             al,SBIRQGen
+                xor             al,ah
                 jmp             SHORT $+2               ; Short pause
                 out             0A1h,al
                 pop             eax                     ; Finished parsing
@@ -230,6 +251,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 mov             ax,SEG _DATA
                 mov             ds,ax
                 INVOKE          MPU401_SetEnableSBIRQ,SBIRQGen
+                INVOKE          MPU401_SetEnableMPUVerFix, MPUVerFix
                 pop             ds
                 popa
 @@ExitISR3:     popf

@@ -88,6 +88,7 @@ typedef enum MpuDataType MpuDataType; /* SOFTMPU */
 static struct {
 	bool intelligent;
         bool generate_irqs; /* SOFTMPU */
+        bool mpu_ver_fix; /* SOFTMPU */
 	MpuMode mode;
 	Bitu sbport;
 	Bitu mpuport;
@@ -301,8 +302,17 @@ void MPU401_WriteCommand(Bitu val) { /* SOFTMPU */
 			QueueByte(0);
 			return;
 		case 0xac:      /* Request version */
-			QueueByte(MSG_MPU_ACK);
-			QueueByte(MPU401_VERSION);
+                        if (mpu.mpu_ver_fix)
+                        {
+                                /* SOFTMPU: Fix missing music in Gateway by reversing version and ACK */
+                                QueueByte(MPU401_VERSION);
+                                QueueByte(MSG_MPU_ACK);
+                        }
+                        else
+                        {
+                                QueueByte(MSG_MPU_ACK);
+                                QueueByte(MPU401_VERSION);
+                        }
 			return;
 		case 0xad:      /* Request revision */
 			QueueByte(MSG_MPU_ACK);
@@ -719,6 +729,12 @@ void MPU401_SetEnableSBIRQ(bool enable)
         mpu.generate_irqs=enable;
 }
 
+/* SOFTMPU: Enable/disable MPU version fix for Gateway */
+void MPU401_SetEnableMPUVerFix(bool enable)
+{
+        mpu.mpu_ver_fix=enable;
+}
+
 /* SOFTMPU: Initialisation */
 void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmidi,bool delaysysex,bool fakeallnotesoff)
 {
@@ -738,7 +754,8 @@ void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmid
 	mpu.mode=M_UART;
 	mpu.sbport=sbport;
 	mpu.mpuport=mpuport;
-        mpu.generate_irqs=true; /* SOFTMPU */
+        mpu.generate_irqs=false; /* SOFTMPU */
+        mpu.mpu_ver_fix=false; /* SOFTMPU */
 
         mpu.intelligent=true; /* Default is on */
 	if (!mpu.intelligent) return;
