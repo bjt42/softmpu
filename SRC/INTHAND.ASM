@@ -27,12 +27,12 @@ LocalStackSize  EQU             0100h                   ; 256 byte stack for han
 LocalStack      DB              LocalStackSize DUP (?)  ; Declare stack array
 LocalSP         EQU             (OFFSET LocalStack)+LocalStackSize
 
-SavedSS         DW              ?
-SavedBP         DW              ?
-SavedSP         DW              ?
-SavedAX         DW              ?
-SavedBX         DW              ?                       ; Used by QEMM port handler
-SavedDX         DW              ?
+SavedSS         DW              ?                       ; Used by QEMM port handler
+SavedBP         DW              ?                       ; Used by QEMM port handler
+SavedSP         DW              ?                       ; Used by QEMM port handler
+SavedEAX        DWORD           ?
+SavedEBX        DWORD           ?                       ; Used by QEMM port handler
+SavedEDX        DWORD           ?
 
                 ASSUME          ds:_DATA                ; Access local vars via cs
 
@@ -46,7 +46,7 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 mov             SavedSS,ss
                 mov             SavedBP,bp
                 mov             SavedSP,sp
-                mov             SavedAX,ax
+                mov             WORD PTR SavedEAX,ax
 
                 ; Set local stack
                 mov             ax,cs
@@ -98,7 +98,7 @@ Int70Handler:   ; Ensure interrupts are disabled, in case something's chained us
                 mov             bp,ax
                 mov             ax,SavedSP
                 mov             sp,ax
-                mov             ax,SavedAX
+                mov             ax,WORD PTR SavedEAX
                 iret                                    ; Will restore int flag
 
 SBIntHandler:   ; Ensure interrupts are disabled, in case something's chained us
@@ -111,8 +111,8 @@ SBIntHandler:   ; Ensure interrupts are disabled, in case something's chained us
                 je              @@ExitISR
 
                 ; Save scratch registers
-                mov             SavedAX,ax
-                mov             SavedDX,dx
+                mov             WORD PTR SavedEAX,ax
+                mov             WORD PTR SavedEDX,dx
 
                 ; Acknowledge interrupt
                 mov             dx,SBPortAddr
@@ -126,38 +126,10 @@ SBIntHandler:   ; Ensure interrupts are disabled, in case something's chained us
 @@FirstPIC:     out             020h,al                 ; Send to primary PIC
 
                 ; Restore scratch registers
-                mov             ax,SavedAX
-                mov             dx,SavedDX
+                mov             ax,WORD PTR SavedEAX
+                mov             dx,WORD PTR SavedEDX
 @@ExitISR:      popf
                 jmp             OldSBISR
-
-TimerIntHandler:; Call chained ISR first
-                pushf
-                call            OldTimerISR
-
-                ; Ensure interrupts are disabled, in case something's chained us
-                cli
-
-                ; DEBUG
-                iret
-
-                ; Save scratch registers
-                mov             SavedAX,ax
-
-                ; Make sure IRQ 2 (cascade) is unmasked
-                ; Some games (e.g. Gateway) disable it, causing problems with PS/2 mice
-                in              al,021h                 ; Get current mask
-                test            al,04h
-                jz              @@IRQ2OK
-                and             al,0FBh
-		jmp             SHORT $+2               ; Enforce short pause between read & write
-                out             021h,al                 ; Set new mask
-
-                ; Restore scratch registers
-@@IRQ2OK:       mov             ax,SavedAX
-
-                ; Chained ISR will have already sent an EOI
-                iret                                    ; Will restore int flag
 
 DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 pushf
@@ -212,6 +184,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 mov             ax,cs
                 mov             ds,ax                   ; Copy cs->ds for data access
                 mov             si,OFFSET AppIDStrings
+                cld                                     ; Auto increment si
 @@ParseAppStrings:
                 lodsd                                   ; Get an ID string
                 cmp             al,0                    ; Check for null terminator

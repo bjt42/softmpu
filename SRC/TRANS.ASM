@@ -282,6 +282,7 @@ Init:           ; Ensure ds=cs
 		xor		cx,cx
 		mov             si,cx
 		mov		ds,cx
+                cld                                     ; Auto increment si
 @@CompareNext:  lodsb                                   ; Low word/low byte
                 mov             dl,al                   ; Save in dl
                 lodsb                                   ; Low/high
@@ -401,7 +402,6 @@ EMMOK:          ; Ensure ds=cs
 		mov             DWORD PTR es:[si],eax   ; Store complete ID string
 
                 ; Install support handlers
-                call            InstTimerISR            ; Install the IRQ 2/8 watchdog
                 call            InstDOSISR              ; Install the exec handler
 
                 ; Set RTC busy flag

@@ -50,10 +50,6 @@ OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
 OldSBISRSeg     DW              ?                       ; Don't reorder these
 
-OldTimerISR     LABEL           DWORD
-OldTimerISRAddr DW              ?
-OldTimerISRSeg  DW              ?                       ; Don't reorder these
-
 OldDOSISR       LABEL           DWORD
 OldDOSISRAddr   DW              ?
 OldDOSISRSeg    DW              ?                       ; Don't reorder these
@@ -72,6 +68,7 @@ IDString        DB              '0S2M'                  ; Detection string
                 INCLUDE         appstr.asm              ; App ID substrings
                 INCLUDE         inthand.asm             ; Interrupt handlers
 		INCLUDE         porthand.asm            ; Port handler code
+                INCLUDE         resutils.asm            ; Resident utility routines
 
                 ASSUME          ds:_DATA                ; Access local vars via cs
 
