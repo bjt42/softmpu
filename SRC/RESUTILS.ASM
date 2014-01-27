@@ -25,23 +25,26 @@
 
                 ASSUME          ds:_DATA                ; Access local vars via cs
 
-HashString:     ; Generate a non case-sensitive hash from an ASCII string (K&R p.144)
+HashString:     ; Generate a case-insensitive hash from an ASCII string (K&R p.144)
                 ; Input string address in ds:si
                 ; Output hash in ebx
                 ; Trashes eax, edx, flags
                 mov             ebx,0
                 cld                                     ; Auto increment si
-                jmp             @@StartHash
-@@NextByte:     cmp             al,061h
+@@NextByte:     mov             eax,0
+                lodsb
+                cmp             al,0                    ; Null terminator?
+                je              @@ExitHash
+                cmp             al,061h
                 jl              @@UpperCase
                 cmp             al,07Ah
                 jg              @@UpperCase
                 sub             al,020h                 ; Convert to uppercase
-@@UpperCase:    add             ax,31
-                mul             ebx                     ; Accumulate hash value
+@@UpperCase:    push            eax
+                mov             eax,31
+                mul             ebx
                 mov             ebx,eax
-@@StartHash:    mov             eax,0
-                lodsb
-                cmp             al,0                    ; Null terminator?
-                jne             @@NextByte
-                retn
+                pop             eax
+                add             ebx,eax                 ; Accumulate hash value
+                jmp             @@NextByte
+@@ExitHash:     retn

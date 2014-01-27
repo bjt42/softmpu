@@ -20,16 +20,16 @@
 ; SoftMPU by bjt - Software MPU-401 Emulator
 ; ------------------------------------------
 ;
-; App ID substrings
+; App ID hashstrings
 ;
 
                 ; Enable SB interrupts for these intelligent mode apps
-AppIDStrings    DB              'SER.'                  ; Laser Squad
-                DB              'UAD.'                  ; Laser Squad
-                DB              'BCC.'                  ; Laser Squad
-                DB              'RO1.'                  ; Laser Squad
-                DB              'RO2.'                  ; Laser Squad
-                DB              'RO3.'                  ; Laser Squad
-                DB              'ATE.'                  ; Gateway
-                DB              'AIN.'                  ; Gateway
+AppIDStrings    DW              0702Fh                  ; Laser Squad (LASER.EXE)
+                DW              0121Eh                  ; Laser Squad (SQUAD.EXE)
+                DW              0DF0Ch                  ; Laser Squad (LSQDBCC.EXE)
+                DW              017E9h                  ; Laser Squad (INTRO1.EXE)
+                DW              02F6Ah                  ; Laser Squad (INTRO2.EXE)
+                DW              046EBh                  ; Laser Squad (INTRO3.EXE)
+                DW              0DE4Fh                  ; Gateway (GATE.EXE)
+                DW              0703Dh                  ; Gateway (MAIN.EXE)
                 DB              00h                     ; End

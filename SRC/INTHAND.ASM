@@ -142,65 +142,71 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 cli
 
                 ; Default settings
-                push            eax
                 mov             SBEOI,1                 ; Enable SB EOI
                 mov             SBIRQGen,0              ; Disable SB IRQ generation
                 mov             MPUVerFix,0             ; Disable MPU version fix for Gateway
 
-                ; Parse filename for app detection substrings
+                ; Hash the incoming filename (case insensitive)
                 push            si
-                push            ebx
+                mov             SavedEAX,eax
+                mov             SavedEBX,ebx
                 mov             si,dx
-		cld                                     ; Auto increment si
-@@ParseFilename:lodsd                                   ; Get a dword from the filename
-                cmp             al,0                    ; Check for null terminator
+
+                ; Find the end of the string first
+                cld                                     ; Auto increment si
+@@SearchEnd:    lodsb
+                cmp             al,0
+                jne             @@SearchEnd
+
+                ; Now search backwards to find a delimiter
+                dec             si
+                std                                     ; Auto decrement si
+@@SearchDelim:  lodsb
+                cmp             al,05Ch                 ; Backslash?
+                je              @@FoundDelim
+                cmp             al,03Ah                 ; Colon?
+                je              @@FoundDelim
+                cmp             si,dx
+                jge             @@SearchDelim           ; Not yet at start
+                dec             si
+@@FoundDelim:   add             si,2
+                mov             SavedEDX,edx            ; May be trashed by HashString
+                call            HashString
+                mov             edx,SavedEDX
+                cmp             bx,0
                 je              @@ExitISR2
 
                 ; Should we disable EOI?
-                cmp             eax,'.EGU'              ; It Came From The Desert (HUGE.EXE)
-                je              @@DisableSBEOI
-                cmp             eax,'.egu'
+                cmp             bx,0AC2Fh               ; It Came From The Desert (HUGE.EXE)
                 jne             @@CheckMPUVerFix
 @@DisableSBEOI: mov             SBEOI,0                 ; Don't send SB EOI
 
 @@CheckMPUVerFix:
                 ; Should we enable the Gateway MPU version fix?
                 ; See www.vogons.org/viewtopic.php?f=32&t=38044
-                cmp             eax,'.ETA'              ; Gateway (GATE.EXE)
+                cmp             bx,0DE4Fh               ; Gateway (GATE.EXE)
                 je              @@EnableMPUVerFix
-                cmp             eax,'.eta'
-                je              @@EnableMPUVerFix
-                cmp             eax,'.NIA'              ; Gateway (MAIN.EXE)
-                je              @@EnableMPUVerFix
-                cmp             eax,'.nia'
+                cmp             bx,0703Dh               ; Gateway (MAIN.EXE)
                 jne             @@CheckIRQGen
 @@EnableMPUVerFix:
                 mov             MPUVerFix,1             ; Enable MPU version fix for Gateway
 
 @@CheckIRQGen:  ; Should we enable SB IRQ generation?
                 push            ds
-                push            si
-                mov             ebx,eax                 ; Save comparison string
                 mov             ax,cs
                 mov             ds,ax                   ; Copy cs->ds for data access
                 mov             si,OFFSET AppIDStrings
                 cld                                     ; Auto increment si
 @@ParseAppStrings:
-                lodsd                                   ; Get an ID string
+                lodsw                                   ; Get an ID string
                 cmp             al,0                    ; Check for null terminator
-                je              @@NextChar
-                cmp             eax,ebx
-                je              @@EnableIRQGen          ; Found a match
-                xor             eax,0202020h            ; Invert comparison case
-                cmp             eax,ebx
+                je              @@EndParse
+                cmp             ax,bx
                 je              @@EnableIRQGen          ; Found a match
                 jmp             @@ParseAppStrings
 @@EnableIRQGen: mov             SBIRQGen,1              ; Enable SB interrupts
-@@NextChar:     pop             si
-                pop             ds
-                sub             si,3                    ; Only step a byte at a time
-                jmp             @@ParseFilename         ; Next char
-@@ExitISR2:     pop             ebx
+@@EndParse:     pop             ds
+@@ExitISR2:     mov             ebx,SavedEBX
                 pop             si
 
                 ; Never generate interrupts in SB-MIDI mode
@@ -216,7 +222,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 xor             al,ah
                 jmp             SHORT $+2               ; Short pause
                 out             0A1h,al
-                pop             eax                     ; Finished parsing
+                mov             eax,SavedEAX            ; Finished parsing
 
                 ; Now commit our changes
                 pusha

@@ -381,6 +381,8 @@ Init:           ; Ensure ds=cs
                 je              @@NoSBMIDI
                 mov             dx,OFFSET SBMIDIEnabled
                 int             021h
+                mov             dx,OFFSET MPUIRQDisabled
+                int             021h
 @@NoSBMIDI:     cmp             es:DelaySysex,0
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
