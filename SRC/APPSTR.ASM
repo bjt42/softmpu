@@ -24,12 +24,22 @@
 ;
 
                 ; Enable SB interrupts for these intelligent mode apps
-AppIDStrings    DW              0702Fh                  ; Laser Squad (LASER.EXE)
-                DW              0121Eh                  ; Laser Squad (SQUAD.EXE)
-                DW              0DF0Ch                  ; Laser Squad (LSQDBCC.EXE)
+AppIDStrings    DW              0DE4Fh                  ; Gateway (GATE.EXE)
+                DW              0703Dh                  ; Gateway (MAIN.EXE)
+                DW              0DE19h                  ; It Came From The Desert (CHICKEN.EXE)
+                DW              02A3Eh                  ; It Came From The Desert (HGAME.EXE)
+                DW              0AC2Fh                  ; It Came From The Desert (HUGE.EXE)
+                DW              04C14h                  ; It Came From The Desert (INIT.EXE)
+                DW              0703Dh                  ; It Came From The Desert (MAIN.EXE)
+                DW              0D514h                  ; It Came From The Desert (SHELL.EXE)
+                DW              0A7B7h                  ; It Came From The Desert (SUBS.EXE)
+                DW              025BCh                  ; It Came From The Desert (UNDER.EXE)
+                DW              0AB4Dh                  ; It Came From The Desert (WGAME.EXE)
                 DW              017E9h                  ; Laser Squad (INTRO1.EXE)
                 DW              02F6Ah                  ; Laser Squad (INTRO2.EXE)
                 DW              046EBh                  ; Laser Squad (INTRO3.EXE)
-                DW              0DE4Fh                  ; Gateway (GATE.EXE)
-                DW              0703Dh                  ; Gateway (MAIN.EXE)
+                DW              0702Fh                  ; Laser Squad (LASER.EXE)
+                DW              0DF0Ch                  ; Laser Squad (LSQDBCC.EXE)
+                DW              0121Eh                  ; Laser Squad (SQUAD.EXE)
+                DW              0586Bh                  ; Sabre Team (SABRE.EXE)
                 DB              00h                     ; End

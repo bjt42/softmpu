@@ -141,6 +141,22 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 ; Disable interrupts to keep setting changes atomic
                 cli
 
+                ; Save current stack + a scratch reg
+                ; Share a stack with the QEMM port handler
+                ; This should be safe as one should never interrupt the other
+                mov             SavedSS,ss
+                mov             SavedBP,bp
+                mov             SavedSP,sp
+                mov             SavedEAX,eax
+
+                ; Set local stack
+                mov             ax,cs
+                mov             ss,ax
+                mov             ax,OFFSET LocalStack
+                mov             bp,ax
+                mov             ax,LocalSP
+                mov             sp,ax
+
                 ; Default settings
                 mov             SBEOI,1                 ; Enable SB EOI
                 mov             SBIRQGen,0              ; Disable SB IRQ generation
@@ -148,8 +164,7 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
 
                 ; Hash the incoming filename (case insensitive)
                 push            si
-                mov             SavedEAX,eax
-                mov             SavedEBX,ebx
+                push            ebx
                 mov             si,dx
 
                 ; Find the end of the string first
@@ -170,9 +185,9 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 jge             @@SearchDelim           ; Not yet at start
                 dec             si
 @@FoundDelim:   add             si,2
-                mov             SavedEDX,edx            ; May be trashed by HashString
+                push            edx                     ; May be trashed by HashString
                 call            HashString
-                mov             edx,SavedEDX
+                pop             edx
                 cmp             bx,0
                 je              @@ExitISR2
 
@@ -202,11 +217,10 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 cmp             al,0                    ; Check for null terminator
                 je              @@EndParse
                 cmp             ax,bx
-                je              @@EnableIRQGen          ; Found a match
-                jmp             @@ParseAppStrings
+                jne             @@ParseAppStrings
 @@EnableIRQGen: mov             SBIRQGen,1              ; Enable SB interrupts
 @@EndParse:     pop             ds
-@@ExitISR2:     mov             ebx,SavedEBX
+@@ExitISR2:     pop             ebx
                 pop             si
 
                 ; Never generate interrupts in SB-MIDI mode
@@ -222,7 +236,6 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 xor             al,ah
                 jmp             SHORT $+2               ; Short pause
                 out             0A1h,al
-                mov             eax,SavedEAX            ; Finished parsing
 
                 ; Now commit our changes
                 pusha
@@ -233,5 +246,14 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 INVOKE          MPU401_SetEnableMPUVerFix, MPUVerFix
                 pop             ds
                 popa
+
+                ; Restore local stack + scratch reg
+                mov             ax,SavedSS
+                mov             ss,ax
+                mov             ax,SavedBP
+                mov             bp,ax
+                mov             ax,SavedSP
+                mov             sp,ax
+                mov             eax,SavedEAX
 @@ExitISR3:     popf
                 jmp             OldDOSISR
