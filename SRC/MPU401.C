@@ -92,6 +92,7 @@ static struct {
 	MpuMode mode;
 	Bitu sbport;
 	Bitu mpuport;
+        Bitu serialport;
 	/*Bitu irq;*/ /* SOFTMPU */
 	Bit8u queue[MPU401_QUEUE];
 	Bitu queue_pos,queue_used;
@@ -131,6 +132,9 @@ QEMMInfo qemm = { false, NULL }; /* Disabled by default */
 /* SOFTMPU: Sound Blaster MIDI toggle */
 extern MIDI_sbmidi;
 
+/* SOFTMPU: Serial port output toggle */
+extern MIDI_serial;
+
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
         if (mpu.queue_used==0 && mpu.intelligent && mpu.generate_irqs) {
@@ -167,9 +171,29 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                                 call    qemm.qpi_entry          ; Result in bl
                                 mov     al,bl
                                 _emit   0A8h                    ; Emit test al,(next opcode byte)
-
+                                                                ; Effectively skips next instruction
                 UntrappedIn:    in      al,dx
                                 shr     al,1
+                                and     al,040h
+                                or      retval,al
+                }
+        }
+        else if (MIDI_serial)
+        {
+                /* SOFTMPU: Reflect hardware transmit register */
+                _asm
+                {
+                                mov     dx,mpu.serialport
+                                add     dx,05h                  ; Select line status register
+                                cmp     qemm.installed,1
+                                jne     UntrappedIn2
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry          ; Result in bl
+                                mov     al,bl
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                                ; Effectively skips next instruction
+                UntrappedIn2:   in      al,dx
+                                xor     al,040h                 ; Invert shift register flag
                                 and     al,040h
                                 or      retval,al
                 }
@@ -182,13 +206,13 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                                 mov     dx,mpu.mpuport
                                 inc     dx
                                 cmp     qemm.installed,1
-                                jne     UntrappedIn2
+                                jne     UntrappedIn3
                                 mov     ax,01A00h               ; QPI_UntrappedIORead
                                 call    qemm.qpi_entry          ; Result in bl
                                 mov     al,bl
                                 _emit   0A8h                    ; Emit test al,(next opcode byte)
                                                                 ; Effectively skips next instruction
-                UntrappedIn2:   in      al,dx
+                UntrappedIn3:   in      al,dx
                                 and     al,040h
                                 or      retval,al
                 }
@@ -754,6 +778,7 @@ void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmid
 	mpu.mode=M_UART;
 	mpu.sbport=sbport;
 	mpu.mpuport=mpuport;
+        mpu.serialport=0x3F8;
         mpu.generate_irqs=false; /* SOFTMPU */
         mpu.mpu_ver_fix=false; /* SOFTMPU */
 
