@@ -37,9 +37,13 @@ CmdHandlerAddr  DW              OFFSET PortHandler
 
 SBPortAddr      DW              0
 SBIRQ           DB              0
+SerialPortAddr  DB              0      
 SBMIDI          DB              0
+Serial          DB              0
 DelaySysex      DB              0
 FakeAllNotesOff DB              0
+
+OutMode         OutputMode      M_MPU401                ; MIDI output mode control
 
 VirtualisePorts DB              0                       ; Port virtualisation control
 SBEOI           DB              1                       ; SB ISR EOI control
@@ -128,7 +132,14 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SBMIDI,DelaySysex,FakeAllNotesOff
+@@InitSoftMPU:  ; Construct the output mode
+                cmp             Serial,0
+                je              @@NotSerial
+                mov             OutMode,M_SERIAL
+@@NotSerial:    cmp             SBMIDI,0
+                je              @@NotSBMIDI
+                mov             OutMode,M_SBMIDI
+@@NotSBMIDI:    INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SerialPortAddr,OutMode,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

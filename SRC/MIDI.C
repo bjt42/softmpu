@@ -119,8 +119,7 @@ static struct {
 Bitu MIDI_sysex_delay;
 
 /* SOFTMPU: Also used by MPU401_ReadStatus */
-bool MIDI_sbmidi;
-bool MIDI_serial;
+OutputMode MIDI_output_mode;
 
 /* SOFTMPU: Initialised in mpu401.c */
 extern QEMMInfo qemm;
@@ -245,61 +244,60 @@ static void PlayMsg_Serial(Bit8u* msg,Bitu len)
 
 static void PlayMsg(Bit8u* msg,Bitu len)
 {
-        /* Pass through for SB-MIDI mode */
-        if (MIDI_sbmidi)
+        switch (MIDI_output_mode)
         {
+        case M_MPU401:
+                /* Output a MIDI message to the hardware */
+                /* Wait for DRR clear, then output a byte */
+                _asm
+                {
+                                mov     bx,msg
+                                mov     cx,len                  ; Assume len < 2^16
+                                add     cx,bx                   ; Get end ptr
+                                mov     dx,midi.mpuport
+                NextByte:       cmp     bx,cx
+                                je      End
+                                inc     dx                      ; Set cmd port
+                WaitDRR:        cmp     qemm.installed,1
+                                jne     WaitDRRUntrappedIN
+                                push    bx
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry
+                                mov     al,bl
+                                pop     bx
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                                ; Effectively skips next instruction
+                WaitDRRUntrappedIN:
+                                in      al,dx
+                                test    al,040h
+                                jnz     WaitDRR
+                                dec     dx                      ; Set data port
+                                mov     al,[bx]
+                                cmp     qemm.installed,1
+                                jne     WaitDRRUntrappedOUT
+                                push    bx
+                                mov     bl,al                   ; bl = value
+                                mov     ax,01A01h               ; QPI_UntrappedIOWrite
+                                call    qemm.qpi_entry
+                                pop     bx
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                                ; Effectively skips next instruction
+                WaitDRRUntrappedOUT:
+                                out     dx,al
+                                inc     bx
+                                jmp     NextByte
+
+                                ; Nothing more to send
+                End:            nop
+                }
+                break;
+        case M_SBMIDI:
                 return PlayMsg_SBMIDI(msg,len);
-        }
-
-        /* Pass through for serial mode */
-        if (MIDI_serial)
-        {
+        case M_SERIAL:
                 return PlayMsg_Serial(msg,len);
+        default:
+                break;
         }
-
-	/* Output a MIDI message to the hardware */
-	/* Wait for DRR clear, then output a byte */
-	_asm
-	{
-			mov     bx,msg
-			mov     cx,len                  ; Assume len < 2^16
-			add     cx,bx                   ; Get end ptr
-			mov     dx,midi.mpuport
-	NextByte:       cmp     bx,cx
-			je      End
-			inc     dx                      ; Set cmd port
-        WaitDRR:        cmp     qemm.installed,1
-                        jne     WaitDRRUntrappedIN
-			push	bx
-                        mov     ax,01A00h               ; QPI_UntrappedIORead
-                        call    qemm.qpi_entry
-			mov	al,bl
-			pop	bx
-                        _emit   0A8h                    ; Emit test al,(next opcode byte)
-                                                        ; Effectively skips next instruction
-        WaitDRRUntrappedIN:
-			in      al,dx
-			test    al,040h
-			jnz     WaitDRR
-			dec     dx                      ; Set data port
-			mov     al,[bx]
-                        cmp     qemm.installed,1
-                        jne     WaitDRRUntrappedOUT
-			push 	bx
-                        mov     bl,al                   ; bl = value
-                        mov     ax,01A01h               ; QPI_UntrappedIOWrite
-                        call    qemm.qpi_entry
-			pop	bx
-                        _emit   0A8h                    ; Emit test al,(next opcode byte)
-                                                        ; Effectively skips next instruction
-        WaitDRRUntrappedOUT:
-			out     dx,al
-			inc     bx
-			jmp     NextByte
-
-                        ; Nothing more to send
-	End:            nop
-	}
 };
 
 /* SOFTMPU: Fake "All Notes Off" for Roland RA-50 */
@@ -449,8 +447,7 @@ bool MIDI_Available(void)  {
 }
 
 /* SOFTMPU: Initialisation */
-void MIDI_Init(Bitu mpuport,Bitu sbport,bool sbmidi,bool delaysysex,bool fakeallnotesoff)
-{
+void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff){
         Bitu i; /* SOFTMPU */
 	midi.sysex.delay = 0;
 	midi.sysex.start = 0;
@@ -463,14 +460,13 @@ void MIDI_Init(Bitu mpuport,Bitu sbport,bool sbmidi,bool delaysysex,bool fakeall
 	}
 	midi.mpuport=mpuport;
         midi.sbport=sbport;
-        midi.serialport=0x3F8;
+        midi.serialport=serialport;
 	midi.status=0x00;
 	midi.cmd_pos=0;
 	midi.cmd_len=0;
         midi.fakeallnotesoff=fakeallnotesoff;
         midi.available=true;
-        MIDI_sbmidi=sbmidi;
-        MIDI_serial=true;
+        MIDI_output_mode=outputmode;
 
         /* SOFTMPU: Display welcome message on MT-32 */
         for (i=0;i<30;i++)

@@ -52,7 +52,7 @@ void PIC_SetIRQMask(Bitu irq,bool masked);
 void PIC_AddEvent(EventID event,Bitu delay);
 void PIC_RemoveEvents(EventID event);
 
-void MIDI_Init(Bitu mpuport,Bitu sbport,bool sbmidi,bool delaysysex,bool fakeallnotesoff);
+void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff);
 void MIDI_RawOutByte(Bit8u data);
 bool MIDI_Available(void);
 
@@ -89,7 +89,7 @@ static struct {
 	bool intelligent;
         bool generate_irqs; /* SOFTMPU */
         bool mpu_ver_fix; /* SOFTMPU */
-	MpuMode mode;
+        MpuMode mode;
 	Bitu sbport;
 	Bitu mpuport;
         Bitu serialport;
@@ -129,11 +129,8 @@ static struct {
 /* SOFTMPU: Global QEMM interface parameters accessed from MIDI_PlayMsg */
 QEMMInfo qemm = { false, NULL }; /* Disabled by default */
 
-/* SOFTMPU: Sound Blaster MIDI toggle */
-extern MIDI_sbmidi;
-
-/* SOFTMPU: Serial port output toggle */
-extern MIDI_serial;
+/* SOFTMPU: Selected output mode */
+extern MIDI_output_mode;
 
 static void QueueByte(Bit8u data) {
 	if (mpu.state.block_ack) {mpu.state.block_ack=false;return;}
@@ -158,8 +155,27 @@ static void ClrQueue(void) {
 Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
 	Bit8u retval=0x3f; /* Bits 6 and 7 clear */
 
-        if (MIDI_sbmidi)
+        switch (MIDI_output_mode)
         {
+        case M_MPU401:
+                /* SOFTMPU: Reflect hardware DRR */
+                _asm
+                {
+                                mov     dx,mpu.mpuport
+                                inc     dx
+                                cmp     qemm.installed,1
+                                jne     UntrappedIn3
+                                mov     ax,01A00h               ; QPI_UntrappedIORead
+                                call    qemm.qpi_entry          ; Result in bl
+                                mov     al,bl
+                                _emit   0A8h                    ; Emit test al,(next opcode byte)
+                                                                ; Effectively skips next instruction
+                UntrappedIn3:   in      al,dx
+                                and     al,040h
+                                or      retval,al
+                }
+                break;
+        case M_SBMIDI:
                 /* SOFTMPU: Reflect hardware WBS */
                 _asm
                 {
@@ -177,9 +193,8 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                                 and     al,040h
                                 or      retval,al
                 }
-        }
-        else if (MIDI_serial)
-        {
+                break;
+        case M_SERIAL:
                 /* SOFTMPU: Reflect hardware transmit register */
                 _asm
                 {
@@ -197,25 +212,9 @@ Bitu MPU401_ReadStatus(void) { /* SOFTMPU */
                                 and     al,040h
                                 or      retval,al
                 }
-        }
-        else
-        {
-                /* SOFTMPU: Reflect hardware DRR */
-                _asm
-                {
-                                mov     dx,mpu.mpuport
-                                inc     dx
-                                cmp     qemm.installed,1
-                                jne     UntrappedIn3
-                                mov     ax,01A00h               ; QPI_UntrappedIORead
-                                call    qemm.qpi_entry          ; Result in bl
-                                mov     al,bl
-                                _emit   0A8h                    ; Emit test al,(next opcode byte)
-                                                                ; Effectively skips next instruction
-                UntrappedIn3:   in      al,dx
-                                and     al,040h
-                                or      retval,al
-                }
+                break;
+        default:
+                break;
         }
 	if (mpu.state.cmd_pending) retval|=0x40;
 	if (!mpu.queue_used) retval|=0x80;
@@ -760,7 +759,7 @@ void MPU401_SetEnableMPUVerFix(bool enable)
 }
 
 /* SOFTMPU: Initialisation */
-void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmidi,bool delaysysex,bool fakeallnotesoff)
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff)
 {
         /* Store QEMM parameters */
         qemm.installed=(NULL!=qpientry);
@@ -770,7 +769,7 @@ void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmid
 	PIC_Init();
 
 	/* Initialise MIDI handler */
-        MIDI_Init(mpuport,sbport,sbmidi,delaysysex,fakeallnotesoff);
+        MIDI_Init(mpuport,sbport,serialport,outputmode,delaysysex,fakeallnotesoff);
 	if (!MIDI_Available()) return;
 
 	mpu.queue_used=0;
@@ -778,7 +777,7 @@ void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmid
 	mpu.mode=M_UART;
 	mpu.sbport=sbport;
 	mpu.mpuport=mpuport;
-        mpu.serialport=0x3F8;
+        mpu.serialport=serialport;
         mpu.generate_irqs=false; /* SOFTMPU */
         mpu.mpu_ver_fix=false; /* SOFTMPU */
 
