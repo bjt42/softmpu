@@ -224,11 +224,11 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 pop             si
 
                 ; Never generate interrupts in SB-MIDI mode
-                mov             al,SBMIDI
-                xor             al,01h
-                and             SBIRQGen,al
+                cmp             OutMode,M_SBMIDI
+                jne             @@NoSBMIDI2
+                mov             SBIRQGen,0
 
-                ; Enable/disable RTC interrupts as well
+@@NoSBMIDI2:    ; Enable/disable RTC interrupts as well
                 in              al,0A1h
                 mov             ah,SBIRQGen
                 or              ah,DelaySysex           ; DelaySysex requires RTC interrupts

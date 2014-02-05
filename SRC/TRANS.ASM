@@ -69,9 +69,13 @@ Init:           ; Ensure ds=cs
 		je              @@SBIRQParam
 		cmp             eax,':qri'
 		je              @@SBIRQParam
-                cmp             eax,'MBS/'
+                cmp             eax,'MOC:'
+                je              @@SerialParam
+                cmp             eax,'moc:'
+                je              @@SerialParam
+                cmp             eax,'MBS:'
                 je              @@EnableSBMIDI
-                cmp             eax,'mbs/'
+                cmp             eax,'mbs:'
                 je              @@EnableSBMIDI
 		cmp             eax,'LED/'              ; Check for delay switch
 		je              @@EnableDelay
@@ -85,9 +89,8 @@ Init:           ; Ensure ds=cs
                 jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
 		jmp             @@NextParam
-@@EnableSBMIDI: mov             es:SBMIDI,1             ; Enable SB-MIDI mode
+@@EnableSBMIDI: mov             es:OutMode,M_SBMIDI     ; Enable SB-MIDI mode
                 jmp             @@NextParam
-
 @@MPUBaseParam: cmp             cx,7                    ; Command plus 3-digit port
 		jl              @@NextParam             ; Not enough chars left
 		xor             bx,bx
@@ -105,7 +108,6 @@ Init:           ; Ensure ds=cs
 		inc             bx                               
 		mov             es:MPUCmdPortAddr,bx    ; Set command port
 		jmp             @@NextParam
-
 @@SBBaseParam:  cmp             cx,7                    ; Command plus 3-digit port
 		jl              @@NextParam             ; Not enough chars left
 		xor             bx,bx
@@ -121,7 +123,6 @@ Init:           ; Ensure ds=cs
 		or              bl,al
 		mov             es:SBPortAddr,bx        ; Set port
 		jmp             @@NextParam
-
 @@SBIRQParam:   cmp             cx,5                    ; Command plus 1-digit IRQ
 		jl              @@NextParam             ; Not enough chars left
 		xor             bl,bl
@@ -141,6 +142,32 @@ Init:           ; Ensure ds=cs
 @@ZeroDigit:    call            CharToNum
 		add             bl,al
 @@SetSBIRQ:     mov             es:SBIRQ,bl             ; Set IRQ
+                jmp             @@NextParam
+@@SerialParam:  cmp             cx,5                    ; Command plus 1-digit port
+		jl              @@NextParam             ; Not enough chars left
+		mov             al,[si]                 ; 1st hex digit
+		call            CharToNum
+
+                ; Check we've got a valid serial port number
+                cmp             al,1
+                jl              @@NextParam
+                cmp             al,4
+                jg              @@NextParam
+
+                ; Get the serial port base address from the BIOS
+                push            ds
+                mov             bx,040h
+                mov             ds,bx
+                dec             al
+                mov             bl,2
+                mul             bl                      ; Calculate the offset
+                push            si
+                mov             si,ax
+                mov             bx,[si]                 ; Get port address from BIOS
+                pop             si
+                pop             ds
+                mov             es:SerialPortAddr,bx    ; Set port address
+                mov             es:OutMode,M_SERIAL     ; Select serial output mode
 @@NextParam:    sub             si,3                    ; Only step a byte at a time
 		dec             cx                      ; We've consumed a char
 		cmp             cx,0                    ; Consumed all chars?
@@ -317,7 +344,7 @@ Init:           ; Ensure ds=cs
 		jmp             Terminate
 
 @@RTCOK:        ; No HW MPU init for SB-MIDI mode
-                cmp             es:SBMIDI,1
+                cmp             es:OutMode,M_SBMIDI
                 je              @@SkipUART
 
                 ; Try to init the MPU interface and switch to UART mode
@@ -377,8 +404,8 @@ Init:           ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET SBSuccessEnd
 		int             021h
-                cmp             es:SBMIDI,0
-                je              @@NoSBMIDI
+                cmp             es:OutMode,M_SBMIDI
+                jne             @@NoSBMIDI
                 mov             dx,OFFSET SBMIDIEnabled
                 int             021h
                 mov             dx,OFFSET MPUIRQDisabled
