@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2002-2013  The DOSBox Team
- *  Copyright (C) 2013       bjt, elianda
+ *  Copyright (C) 2013-2014  bjt, elianda
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -59,7 +59,7 @@ typedef int Bits;
 #define MAX_TRACKED_CHANNELS 16
 #define MAX_TRACKED_NOTES 8
 
-static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.7    \x26\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v2.0    \x2c\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_note_off[3] = { 0x80,0x00,0x00 }; /* SOFTMPU */
 
@@ -379,7 +379,7 @@ void MIDI_RawOutByte(Bit8u data) {
 					} else if (midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x01) {
                                             /*midi.sysex.delay = 30;*/ /* SOFTMPU */ // Dark Sun 1
                                             MIDI_sysex_delay = 30*(RTCFREQ/1000);
-                                        } else MIDI_sysex_delay = ((midi.sysex.used/13)+2)*(RTCFREQ/1000); /*(Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                                        } else MIDI_sysex_delay = ((midi.sysex.used/2)+2)*(RTCFREQ/1000); /*(Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
                                         midi.sysex.start = GetTicks();*/ /* SOFTMPU */
 				}
 			}
