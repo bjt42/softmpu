@@ -155,18 +155,8 @@ Init:           ; Ensure ds=cs
                 jg              @@NextParam
 
                 ; Get the serial port base address from the BIOS
-                push            ds
-                mov             bx,040h
-                mov             ds,bx
-                dec             al
-                mov             bl,2
-                mul             bl                      ; Calculate the offset
-                push            si
-                mov             si,ax
-                mov             bx,[si]                 ; Get port address from BIOS
-                pop             si
-                pop             ds
-                mov             es:SerialPortAddr,bx    ; Set port address
+                call            DetectSerial
+                mov             es:SerialPortAddr,ax    ; Set port address
                 mov             es:OutMode,M_SERIAL     ; Select serial output mode
 @@NextParam:    sub             si,3                    ; Only step a byte at a time
 		dec             cx                      ; We've consumed a char
@@ -213,6 +203,20 @@ Init:           ; Ensure ds=cs
 		and             al,0Fh
 		call            NumToChar
 		mov             SBPortNum+2,al
+                mov             bx,es:SerialPortAddr
+		mov             ax,bx
+		shr             ax,8
+		call            NumToChar
+                mov             COMPortNum,al
+		mov             ax,bx
+		shr             ax,4
+		and             al,0Fh
+		call            NumToChar
+                mov             COMPortNum+1,al
+		mov             ax,bx
+		and             al,0Fh
+		call            NumToChar
+                mov             COMPortNum+2,al
 
 		; Check we have a valid IRQ
 		cmp             es:SBIRQ,2
@@ -343,9 +347,9 @@ Init:           ; Ensure ds=cs
 		int             021h
 		jmp             Terminate
 
-@@RTCOK:        ; No HW MPU init for SB-MIDI mode
-                cmp             es:OutMode,M_SBMIDI
-                je              @@SkipUART
+@@RTCOK:        ; Only init HW MPU when required
+                cmp             es:OutMode,M_MPU401
+                jne             @@SkipUART
 
                 ; Try to init the MPU interface and switch to UART mode
 		call            SwitchToUART
@@ -370,8 +374,8 @@ Init:           ; Ensure ds=cs
 		mov             dx,OFFSET MPUSuccessEnd
 		int             021h
 
-                ; Try to detect a Sound Blaster at the specified port & irq
-@@SkipUART:     call            DetectSB
+@@SkipUART:     ; Try to detect a Sound Blaster at the specified port & irq
+                call            DetectSB
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster
@@ -410,7 +414,20 @@ Init:           ; Ensure ds=cs
                 int             021h
                 mov             dx,OFFSET MPUIRQDisabled
                 int             021h
-@@NoSBMIDI:     cmp             es:DelaySysex,0
+@@NoSBMIDI:     cmp             es:OutMode,M_SERIAL
+                jne             @@NoSerial
+                cmp             es:SerialPortAddr,0
+                jne             @@SerialOK
+                mov             dx,OFFSET COMError
+                int             021h
+                jmp             Terminate
+@@SerialOK:     mov             dx,OFFSET COMSuccessStart
+                int             021h
+                mov             dx,OFFSET COMPortNum
+                int             021h
+                mov             dx,OFFSET COMSuccessEnd
+                int             021h
+@@NoSerial:     cmp             es:DelaySysex,0
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message

@@ -368,3 +368,19 @@ InstDOSISR:     ; Install a handler on int 21h for exec (4Bh) calls
                 int             021h                    ; Register new handler
                 pop             ds
                 retn
+
+DetectSerial:   ; Find the BIOS address of the specified COM port
+                ; Input COM number in al
+                ; Output port address in ax (0=not present)
+                push            ds
+                mov             bx,040h
+                mov             ds,bx
+                dec             al
+                mov             bl,2
+                mul             bl                      ; Calculate the offset
+                push            si
+                mov             si,ax
+                mov             ax,[si]                 ; Get port address from BIOS
+                pop             si
+                pop             ds
+                retn
