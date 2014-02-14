@@ -170,12 +170,18 @@ Init:           ; Ensure ds=cs
 		cmp             es:MPUDataPortAddr,0350h
 		jg              PrintHelp
 		cmp             es:SBPortAddr,0220h
-		jl              PrintHelp
+                jl              @@SBPortNotOK
 		cmp             es:SBPortAddr,0280h
-		jg              PrintHelp
+                jle             @@SBPortOK
 
-		; Write the port addresses into our strings
-		mov             bx,es:MPUDataPortAddr
+@@SBPortNotOK:  ; The SB port was out of range
+                ; That's only OK if we're in serial mode
+                cmp             es:OutMode,M_SERIAL
+                jne             PrintHelp
+                mov             es:SBPortAddr,0
+
+@@SBPortOK:     ; Write the port addresses into our strings
+                mov             bx,es:MPUDataPortAddr
 		mov             ax,bx
 		shr             ax,8
 		call            NumToChar
@@ -220,11 +226,17 @@ Init:           ; Ensure ds=cs
 
 		; Check we have a valid IRQ
 		cmp             es:SBIRQ,2
-		jl              PrintHelp
+                jl              @@SBIRQNotOK
 		cmp             es:SBIRQ,11
-		jg              PrintHelp
+                jle             @@SBIRQOK
 
-		; Write the IRQ into our string
+@@SBIRQNotOK:   ; The SB IRQ was out of range
+                ; That's only OK if we're in serial mode
+                cmp             es:OutMode,M_SERIAL
+                jne             PrintHelp
+                mov             es:SBIRQ,0
+
+@@SBIRQOK:      ; Write the IRQ into our string
 		mov             al,es:SBIRQ
 		cmp             al,10
 		jl              @@SingleDigit           ; More than one digit needed?
@@ -374,16 +386,22 @@ Init:           ; Ensure ds=cs
 		mov             dx,OFFSET MPUSuccessEnd
 		int             021h
 
-@@SkipUART:     ; Try to detect a Sound Blaster at the specified port & irq
+@@SkipUART:     ; Only init SB when required
+                cmp             es:SBPortAddr,0
+                je              @@NoSBMIDI
+                cmp             es:SBIRQ,0
+                je              @@NoSBMIDI
+
+                ; Try to detect a Sound Blaster at the specified port & irq
                 call            DetectSB
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster
-		mov             ah,9
+                mov             ah,9
 		mov             dx,OFFSET SBErrorStart
 		int             021h
 		mov             dx,OFFSET SBPortNum
-		int             021h
+                int             021h
 		mov             dx,OFFSET SBErrorMid
 		int             021h
 		mov             dx,OFFSET SBIRQNum
@@ -426,6 +444,12 @@ Init:           ; Ensure ds=cs
                 mov             dx,OFFSET COMPortNum
                 int             021h
                 mov             dx,OFFSET COMSuccessEnd
+                int             021h
+                cmp             es:SBPortAddr,0
+                jne             @@NoSerial
+                cmp             es:SBIRQ,0
+                jne             @@NoSerial
+                mov             dx,OFFSET MPUIRQDisabled
                 int             021h
 @@NoSerial:     cmp             es:DelaySysex,0
                 je              @@NoDelay

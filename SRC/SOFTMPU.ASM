@@ -67,10 +67,11 @@
 ;
 ; - SB-MIDI support (disables interrupt generation)
 ;
-; 2.0
+; 1.8
 ;
 ; - Serial output support
 ; - Improved performance on slower systems
+; - Tweaked playback speed
 ; - Fixed ESS ISA chipset detection
 ; - Fixed "Gateway" music looping
 ; - Fixed SYSEX delay timing
