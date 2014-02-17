@@ -52,6 +52,10 @@ OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
 OldSBISRSeg     DW              ?                       ; Don't reorder these
 
+OldTimerISR     LABEL           DWORD
+OldTimerISRAddr DW              ?
+OldTimerISRSeg  DW              ?                       ; Don't reorder these
+
 OldDOSISR       LABEL           DWORD
 OldDOSISRAddr   DW              ?
 OldDOSISRSeg    DW              ?                       ; Don't reorder these

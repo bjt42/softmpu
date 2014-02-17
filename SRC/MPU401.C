@@ -708,7 +708,12 @@ void MPU401_ResetDone(void) { /* SOFTMPU */
 
 static void MPU401_Reset(void) {
 	Bitu i; /* SOFTMPU */
-	PIC_DeActivateIRQ(mpu.sbport); /* SOFTMPU */
+
+        if (mpu.generate_irqs)
+        {
+                PIC_DeActivateIRQ(mpu.sbport); /* SOFTMPU */
+        }
+
 	mpu.mode=(mpu.intelligent ? M_INTELLIGENT : M_UART);
 	PIC_RemoveEvents(EOI_HANDLER);
 	mpu.state.eoi_scheduled=false;

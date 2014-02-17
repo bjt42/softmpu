@@ -159,9 +159,9 @@ Init:           ; Ensure ds=cs
                 mov             es:SerialPortAddr,ax    ; Set port address
                 mov             es:OutMode,M_SERIAL     ; Select serial output mode
 @@NextParam:    sub             si,3                    ; Only step a byte at a time
-		dec             cx                      ; We've consumed a char
-		cmp             cx,0                    ; Consumed all chars?
-		jg              @@ParseCmdline
+                dec             cx
+                cmp             cx,0
+                jne             @@ParseCmdline
 @@CheckPorts:   pop             ds                      ; Finished parsing so restore ds
 
 		; Check we have valid port ranges
@@ -235,6 +235,7 @@ Init:           ; Ensure ds=cs
                 cmp             es:OutMode,M_SERIAL
                 jne             PrintHelp
                 mov             es:SBIRQ,0
+                mov             es:SBPortAddr,0         ; Zero the SB port too
 
 @@SBIRQOK:      ; Write the IRQ into our string
 		mov             al,es:SBIRQ
@@ -310,7 +311,7 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET NoEMM
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
 @@FoundEMM:     ; Check if already loaded
 		; Disable interrupts so registers aren't pushed to memory
@@ -320,7 +321,7 @@ Init:           ; Ensure ds=cs
 		mov		ebx,es:[si]
                 inc             ebx                     ; Installed TSRs ID is IDString+1
 
-		; Iterate through base + high memory and look for string
+                ; Iterate through base + high memory and look for string
 		push            ds
 		xor		cx,cx
 		mov             si,cx
@@ -349,7 +350,7 @@ Init:           ; Ensure ds=cs
 		pop             ds
 		popf                                    ; Enable interrupts
 
-		; Check we've got a BIOS with RTC support
+                ; Check we've got a BIOS with RTC support
 		call            DetectRTC
 		jnc             @@RTCOK
 
@@ -357,7 +358,7 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET RTCError
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
 @@RTCOK:        ; Only init HW MPU when required
                 cmp             es:OutMode,M_MPU401
@@ -375,7 +376,7 @@ Init:           ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET MPUErrorEnd
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
 @@UARTOK:       ; MPU detected
 		mov             ah,9
@@ -386,10 +387,28 @@ Init:           ; Ensure ds=cs
 		mov             dx,OFFSET MPUSuccessEnd
 		int             021h
 
-@@SkipUART:     ; Only init SB when required
+@@SkipUART:     ; Only init serial interface when required
+                cmp             es:OutMode,M_SERIAL
+                jne             @@NoSerial
+                mov             ah,9
+                cmp             es:SerialPortAddr,0
+                jne             @@SerialOK
+                mov             dx,OFFSET COMError
+                int             021h
+                jmp             Terminate
+@@SerialOK:     mov             dx,OFFSET COMSuccessStart
+                int             021h
+                mov             dx,OFFSET COMPortNum
+                int             021h
+                mov             dx,OFFSET COMSuccessEnd
+                int             021h
                 cmp             es:SBPortAddr,0
-                je              @@NoSBMIDI
-                cmp             es:SBIRQ,0
+                jne             @@NoSerial
+                mov             dx,OFFSET MPUIRQDisabled
+                int             021h
+
+@@NoSerial:     ; Only init SB when required
+                cmp             es:SBPortAddr,0
                 je              @@NoSBMIDI
 
                 ; Try to detect a Sound Blaster at the specified port & irq
@@ -432,26 +451,7 @@ Init:           ; Ensure ds=cs
                 int             021h
                 mov             dx,OFFSET MPUIRQDisabled
                 int             021h
-@@NoSBMIDI:     cmp             es:OutMode,M_SERIAL
-                jne             @@NoSerial
-                cmp             es:SerialPortAddr,0
-                jne             @@SerialOK
-                mov             dx,OFFSET COMError
-                int             021h
-                jmp             Terminate
-@@SerialOK:     mov             dx,OFFSET COMSuccessStart
-                int             021h
-                mov             dx,OFFSET COMPortNum
-                int             021h
-                mov             dx,OFFSET COMSuccessEnd
-                int             021h
-                cmp             es:SBPortAddr,0
-                jne             @@NoSerial
-                cmp             es:SBIRQ,0
-                jne             @@NoSerial
-                mov             dx,OFFSET MPUIRQDisabled
-                int             021h
-@@NoSerial:     cmp             es:DelaySysex,0
+@@NoSBMIDI:     cmp             es:DelaySysex,0
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
@@ -472,6 +472,7 @@ EMMOK:          ; Ensure ds=cs
 		mov             DWORD PTR es:[si],eax   ; Store complete ID string
 
                 ; Install support handlers
+                call            InstTimerISR            ; Install the IRQ 2 watchdog
                 call            InstDOSISR              ; Install the exec handler
 
                 ; Set RTC busy flag
@@ -524,11 +525,17 @@ EMMOK:          ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET MPUPortNum
 		int             021h
+
+                ; Don't print IRQ in SB-MIDI mode or if no Sound Blaster
+                cmp             es:OutMode,M_SBMIDI
+                je              @@NoIRQMsg
+                cmp             es:SBPortAddr,0
+                je              @@NoIRQMsg
 		mov             dx,OFFSET LoadedMid
 		int             021h
 		mov             dx,OFFSET SBIRQNum
 		int             021h
-		mov             dx,OFFSET LoadedEnd
+@@NoIRQMsg:     mov             dx,OFFSET LoadedEnd
 		int             021h
 		pop             ds
 

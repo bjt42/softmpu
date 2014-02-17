@@ -341,9 +341,7 @@ void MIDI_RawOutByte(Bit8u data) {
                                 cmp     al,bl
                                 je      TestPort                ; Loop until toggled
                                 xor     bl,010h                 ; Invert
-                                dec     cx
-                                cmp     cx,0
-                                jne     TestPort
+                                loop    TestPort
                                 mov     MIDI_sysex_delay,0      ; Set original delay to zero
                 }
                 /*Bit32u passed_ticks = GetTicks() - midi.sysex.start;

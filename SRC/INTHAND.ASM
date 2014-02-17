@@ -131,6 +131,31 @@ SBIntHandler:   ; Ensure interrupts are disabled, in case something's chained us
 @@ExitISR:      popf
                 jmp             OldSBISR
 
+TimerIntHandler:; Call chained ISR first
+                pushf
+                call            OldTimerISR
+
+                ; Ensure interrupts are disabled, in case something's chained us
+                cli
+
+                ; Save scratch registers
+                mov             WORD PTR SavedEAX,ax
+
+                ; Make sure IRQ 2 (cascade) is unmasked
+                ; Some games (e.g. Gateway) disable it, causing problems with PS/2 mice
+                in              al,021h                 ; Get current mask
+                test            al,04h
+                jz              @@IRQ2OK
+                and             al,0FBh
+		jmp             SHORT $+2               ; Enforce short pause between read & write
+                out             021h,al                 ; Set new mask
+
+@@IRQ2OK:       ; Restore scratch registers
+                mov             ax,WORD PTR SavedEAX
+
+                ; Chained ISR will have already sent an EOI
+                iret                                    ; Will restore int flag
+
 DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
                 pushf
                 cmp             ah,04Bh
@@ -223,12 +248,14 @@ DOSIntHandler:  ; Check for exec call (ah=04Bh,al=00h)
 @@ExitISR2:     pop             ebx
                 pop             si
 
-                ; Never generate interrupts in SB-MIDI mode
+                ; Never generate interrupts in SB-MIDI mode or if no Sound Blaster
                 cmp             OutMode,M_SBMIDI
-                jne             @@NoSBMIDI2
-                mov             SBIRQGen,0
+                je              @@DisableIRQ
+                cmp             SBPortAddr,0
+                jne             @@NoDisableIRQ
+@@DisableIRQ:   mov             SBIRQGen,0
 
-@@NoSBMIDI2:    ; Enable/disable RTC interrupts as well
+@@NoDisableIRQ: ; Enable/disable RTC interrupts as well
                 in              al,0A1h
                 mov             ah,SBIRQGen
                 or              ah,DelaySysex           ; DelaySysex requires RTC interrupts

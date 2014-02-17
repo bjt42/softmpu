@@ -347,6 +347,28 @@ DetectRTC:      push            es
                 stc
                 retn                                    ; Failed to detect RTC
 
+InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) remains unmasked
+                ; Doesn't matter if the timer frequency is increased by another app later
+                ; Save the existing handler
+		push            es
+                mov             al,08h
+		mov             ah,035h
+		int             021h                    ; Get interrupt vector
+		mov             dx,es
+		pop             es
+                mov             es:OldTimerISRSeg,dx    ; Save segment addr
+                mov             es:OldTimerISRAddr,bx   ; Save handler addr
+
+		; Register the new handler
+                push            ds
+                mov             bx,es
+                mov             ds,bx                   ; Copy es->ds for API call
+		mov             ah,025h                 ; Interrupt num still in al
+                mov             dx,OFFSET TimerIntHandler
+                int             021h                    ; Register new handler
+                pop             ds
+                retn
+
 InstDOSISR:     ; Install a handler on int 21h for exec (4Bh) calls
                 ; This allows us to implement workarounds for specific apps
                 ; Save the existing handler

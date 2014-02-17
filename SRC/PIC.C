@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2002-2012  The DOSBox Team
- *  Copyright (C) 2013       bjt
+ *  Copyright (C) 2013-2014  bjt
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -149,9 +149,7 @@ void PIC_Update(bool blocking)
                                 cmp     al,bl
                                 je      TestPort                ; Loop until toggled
                                 xor     bl,010h                 ; Invert
-                                dec     cx
-                                cmp     cx,0
-                                jne     TestPort
+                                loop    TestPort
                 }
         }
 
