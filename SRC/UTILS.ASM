@@ -405,4 +405,26 @@ DetectSerial:   ; Find the BIOS address of the specified COM port
                 mov             ax,[si]                 ; Get port address from BIOS
                 pop             si
                 pop             ds
-                retn
+
+                ; If we found an interface, configure it
+                cmp             ax,0
+                je              @@NoConfig
+                push            ax
+                mov             dx,ax
+                add             dx,03h                  ; Select line control reg
+                mov             al,080h                 ; Enable rate divisor latch
+                out             dx,al
+                sub             dx,03h                  ; Select low rate divisor
+                mov             al,3                    ; 38400 baud
+                out             dx,al
+                add             dx,01h                  ; Select high rate divisor
+                mov             al,0                    ; 38400 baud
+                out             dx,al
+                add             dx,02h                  ; Select line control reg
+                mov             al,03h                  ; 8N1, no break, disable rate divisor latch
+                out             dx,al
+                add             dx,01h                  ; Select modem control reg
+                mov             al,03h                  ; Disable interrupts & loopback
+                out             dx,al
+                pop             ax
+@@NoConfig:     retn
