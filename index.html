@@ -7,7 +7,9 @@
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
@@ -17,10 +19,7 @@
       <header>
         <h1>SoftMPU</h1>
         <p>An MPU-401 emulation TSR for DOS</p>
-
         <p class="view"><a href="https://github.com/bjt42/softmpu">View the Project on GitHub <small>bjt42/softmpu</small></a></p>
-
-
         <ul>
           <li><a href="https://github.com/bjt42/softmpu/zipball/master">Download <strong>ZIP File</strong></a></li>
           <li><a href="https://github.com/bjt42/softmpu/tarball/master">Download <strong>TAR Ball</strong></a></li>
@@ -28,23 +27,23 @@
         </ul>
       </header>
       <section>
-        <p><strong>Update 12/12/13</strong> - SoftMPU 1.7 is out! This release adds support for SB-MIDI.</p>
+        <p><strong>Update 20/02/14</strong> - SoftMPU 1.8 is out! This release adds support for serial MIDI output, improves performance on slower systems and fixes compatibility with ESS ISA chipsets.</p>
 
-<p><strong>Update 30/08/13</strong> - SoftMPU 1.6 is out! This release adds support for QEMM (thanks to elianda!). Version 7.03 or later is required.</p>
+<p><strong>Update 12/12/13</strong> - SoftMPU 1.7 is out! This release adds support for SB-MIDI.</p>
 
 <hr><p><strong>Download SoftMPU here:</strong> <a href="http://github.com/bjt42/softmpu/zipball/master">http://github.com/bjt42/softmpu/zipball/master</a></p>
 
 <p><strong>Discuss SoftMPU here:</strong> <a href="http://www.vogons.org/viewforum.php?f=57">http://www.vogons.org/viewforum.php?f=57</a></p>
 
-<p><strong>Game &amp; sound card compatibility list:</strong> <a href="http://github.com/bjt42/softmpu/wiki">http://github.com/bjt42/softmpu/wiki</a></p>
+<p><strong>Compatibility lists &amp; serial MIDI cable pinouts:</strong> <a href="http://github.com/bjt42/softmpu/wiki">http://github.com/bjt42/softmpu/wiki</a></p>
 
 <hr><h2>
-<a name="softmpu-17---software-mpu-401-emulator" class="anchor" href="#softmpu-17---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.7 - Software MPU-401 Emulator</h2>
+<a name="softmpu-18---software-mpu-401-emulator" class="anchor" href="#softmpu-18---software-mpu-401-emulator"><span class="octicon octicon-link"></span></a>SoftMPU 1.8 - Software MPU-401 Emulator</h2>
 
-<p>Copyright (C) 2013        bjt, elianda
-Copyright (C) 2002-2013   The DOSBox Team</p>
+<p>Copyright (C) 2013-2014  bjt, elianda
+Copyright (C) 2002-2013  The DOSBox Team</p>
 
-<p>Release Notes (12/12/13)</p>
+<p>Release Notes (20/02/14)</p>
 
 <h3>
 <a name="what-is-it" class="anchor" href="#what-is-it"><span class="octicon octicon-link"></span></a>WHAT IS IT?</h3>
@@ -57,7 +56,7 @@ Sound Blaster and other common sound cards.</p>
 <a name="whys-this-useful" class="anchor" href="#whys-this-useful"><span class="octicon octicon-link"></span></a>WHY'S THIS USEFUL?</h3>
 
 <p>Games from the late 80s and early 90s that support music via the Roland
-MT-32/CM-32L often expect to find a hardware MPU interface that supports
+MT-32/CM-32L often expect to find a hardware MPU-401 interface that supports
 'intelligent mode'. These are now expensive and difficult to find.</p>
 
 <p>By supporting the 'intelligent mode' features in software, these games will
@@ -67,20 +66,34 @@ work with the basic MIDI interfaces found on sound cards.</p>
 <a name="requirements" class="anchor" href="#requirements"><span class="octicon octicon-link"></span></a>REQUIREMENTS</h3>
 
 <ul>
-<li>EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+ must be loaded</li>
-<li>Sound Blaster (or compatible) sound card</li>
-<li>Roland LA synth (e.g. MT-32, CM-32L) or a sound card with MT-32 emulation</li>
+<li>EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+</li>
+<li>Sound Blaster (or compatible) sound card (MPU-401 &amp; SB-MIDI mode)</li>
+<li>Serial port (Serial MIDI mode)</li>
 </ul><h3>
-<a name="using-softmpu" class="anchor" href="#using-softmpu"><span class="octicon octicon-link"></span></a>USING SOFTMPU</h3>
+<a name="using-softmpu-mpu-401--sb-midi-mode" class="anchor" href="#using-softmpu-mpu-401--sb-midi-mode"><span class="octicon octicon-link"></span></a>USING SOFTMPU: MPU-401 &amp; SB-MIDI MODE</h3>
 
-<p>Run SoftMPU specifying the base I/O port address and interrupt of your Sound
-Blaster, and the base I/O port address of the MPU interface, e.g.</p>
+<p>Run SoftMPU specifying the base port address and interrupt of your Sound
+Blaster, and the base port address of the MPU-401 interface, e.g.</p>
 
 <p><code>SOFTMPU.EXE /SB:220 /IRQ:5 /MPU:330</code></p>
 
-<p>The optional <code>/SBMIDI</code> switch forces Sound Blaster MIDI to be used. This mode
-is intended for use with the Sound Blaster Pro 2 and other sound cards
-without a hardware MPU interface. Game compatibility may be reduced.</p>
+<p>The optional <code>/OUTPUT:SBMIDI</code> switch forces Sound Blaster MIDI to be used. This
+mode is intended for use with the Sound Blaster Pro 2 and other sound cards
+without a hardware MPU-401 interface. Game compatibility may be reduced.</p>
+
+<h3>
+<a name="using-softmpu-serial-midi-mode" class="anchor" href="#using-softmpu-serial-midi-mode"><span class="octicon octicon-link"></span></a>USING SOFTMPU: SERIAL MIDI MODE</h3>
+
+<p>Run SoftMPU specifying the serial interface to be used and the base port
+address of the MPU-401 interface, e.g.</p>
+
+<p><code>SOFTMPU.EXE /MPU:330 /OUTPUT:COM1</code></p>
+
+<p>A Sound Blaster base port address and IRQ can optionally be specified if
+MPU-401 interrupts are required.</p>
+
+<h3>
+<a name="further-options" class="anchor" href="#further-options"><span class="octicon octicon-link"></span></a>FURTHER OPTIONS</h3>
 
 <p>The optional <code>/DELAYSYSEX</code> switch enables small transmission delays to prevent
 buffer overflow with the Rev.0 MT-32.</p>
@@ -100,12 +113,11 @@ approximately 8KB and can be loaded into high memory using the LH command.</p>
 
 <p><strong>Problem:</strong>  Some games expect to find an MPU interface on IRQ 2, but my sound
               but my sound card doesn't support it.
-<strong>Solution:</strong> Use IRQ 9 instead. This is supported by Yamaha YMF71x sound cards,
-              maybe others too.</p>
+<strong>Solution:</strong> Configure your sound card to use IRQ 9.</p>
 
 <p><strong>Problem:</strong>  SoftMPU can't find a hardware MPU interface when using a Sound
               Blaster Pro 2 or older sound card.
-<strong>Solution</strong>: Run SoftMPU with the /SBMIDI switch.</p>
+<strong>Solution</strong>: Run SoftMPU with the <code>/OUTPUT:SBMIDI</code> switch.</p>
 
 <p><strong>Problem:</strong>  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback sounds incorrect.
 <strong>Solution:</strong> Run SoftMPU with the <code>/DELAYSYSEX</code> switch.</p>
@@ -117,7 +129,7 @@ approximately 8KB and can be loaded into high memory using the LH command.</p>
 <h3>
 <a name="further-info" class="anchor" href="#further-info"><span class="octicon octicon-link"></span></a>FURTHER INFO</h3>
 
-<p>For game compatibility information, please see
+<p>For compatibility information and serial MIDI cable pinouts, please see
 <a href="http://github.com/bjt42/softmpu/wiki">http://github.com/bjt42/softmpu/wiki</a>.</p>
 
 <h3>
@@ -146,12 +158,12 @@ couldn't exist without it!</li>
 <li>Forum members at <a href="http://www.vogons.org">www.vogons.org</a> for their encouragement and advice :)</li>
 </ul>
       </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/bjt42">bjt42</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
+    <footer>
+      <p>Project maintained by <a href="https://github.com/bjt42">bjt42</a></p>
+      <p>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></p>
+    </footer>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
               <script type="text/javascript">
             var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
             document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
