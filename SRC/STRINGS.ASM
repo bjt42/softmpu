@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU X.X ',0FEh,' Software MPU-401 Emulator ',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU 1.8 ',0FEh,' Software MPU-401 Emulator ',0B3h,0Dh,0Ah
                 DB              0B3h,'                                        ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013-2014  bjt, elianda   ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013  The DOSBox Team',0B3h,0Dh,0Ah
@@ -62,7 +62,7 @@ COMError        DB              '! Error: Serial interface not detected',0Dh,0Ah
 COMSuccessStart DB              0FBh,' Serial interface detected at port ','$'
 COMSuccessEnd   DB              0Dh,0Ah,'$'
 COMPortNum      DB              '   ','$'
-SBMIDIEnabled   DB              'i SB-MIDI output enabled',0Dh,0Ah,'$'
+SBMIDIEnabled   DB              'i SB-MIDI mode enabled',0Dh,0Ah,'$'
 DelaysEnabled   DB              'i SYSEX delays enabled',0Dh,0Ah,'$'
 FakeEnabled     DB              'i Simulated "All Notes Off" enabled',0Dh,0Ah,'$'
 MPUIRQDisabled  DB              'i MPU-401 interrupts disabled',0Dh,0Ah,'$'

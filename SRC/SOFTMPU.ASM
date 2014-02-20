@@ -73,7 +73,6 @@
 ; - Improved performance on slower systems
 ; - Tweaked playback speed
 ; - Fixed ESS ISA chipset detection
-; - Fixed "Gateway" music looping
 ; - Fixed SYSEX delay timing
 ; ------------------------------------------
 
