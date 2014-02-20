@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt, elianda
+; Copyright (C) 2013-2014 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -67,6 +67,13 @@
 ;
 ; - SB-MIDI support (disables interrupt generation)
 ;
+; 1.8
+;
+; - Serial output support
+; - Improved performance on slower systems
+; - Tweaked playback speed
+; - Fixed ESS ISA chipset detection
+; - Fixed SYSEX delay timing
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init

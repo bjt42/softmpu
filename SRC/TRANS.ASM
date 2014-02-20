@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt, elianda
+; Copyright (C) 2013-2014 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -69,9 +69,13 @@ Init:           ; Ensure ds=cs
 		je              @@SBIRQParam
 		cmp             eax,':qri'
 		je              @@SBIRQParam
-                cmp             eax,'MBS/'
+                cmp             eax,'MOC:'
+                je              @@SerialParam
+                cmp             eax,'moc:'
+                je              @@SerialParam
+                cmp             eax,'MBS:'
                 je              @@EnableSBMIDI
-                cmp             eax,'mbs/'
+                cmp             eax,'mbs:'
                 je              @@EnableSBMIDI
 		cmp             eax,'LED/'              ; Check for delay switch
 		je              @@EnableDelay
@@ -85,9 +89,8 @@ Init:           ; Ensure ds=cs
                 jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
 		jmp             @@NextParam
-@@EnableSBMIDI: mov             es:SBMIDI,1             ; Enable SB-MIDI mode
+@@EnableSBMIDI: mov             es:OutMode,M_SBMIDI     ; Enable SB-MIDI mode
                 jmp             @@NextParam
-
 @@MPUBaseParam: cmp             cx,7                    ; Command plus 3-digit port
 		jl              @@NextParam             ; Not enough chars left
 		xor             bx,bx
@@ -105,7 +108,6 @@ Init:           ; Ensure ds=cs
 		inc             bx                               
 		mov             es:MPUCmdPortAddr,bx    ; Set command port
 		jmp             @@NextParam
-
 @@SBBaseParam:  cmp             cx,7                    ; Command plus 3-digit port
 		jl              @@NextParam             ; Not enough chars left
 		xor             bx,bx
@@ -121,7 +123,6 @@ Init:           ; Ensure ds=cs
 		or              bl,al
 		mov             es:SBPortAddr,bx        ; Set port
 		jmp             @@NextParam
-
 @@SBIRQParam:   cmp             cx,5                    ; Command plus 1-digit IRQ
 		jl              @@NextParam             ; Not enough chars left
 		xor             bl,bl
@@ -141,10 +142,26 @@ Init:           ; Ensure ds=cs
 @@ZeroDigit:    call            CharToNum
 		add             bl,al
 @@SetSBIRQ:     mov             es:SBIRQ,bl             ; Set IRQ
+                jmp             @@NextParam
+@@SerialParam:  cmp             cx,5                    ; Command plus 1-digit port
+		jl              @@NextParam             ; Not enough chars left
+		mov             al,[si]                 ; 1st hex digit
+		call            CharToNum
+
+                ; Check we've got a valid serial port number
+                cmp             al,1
+                jl              @@NextParam
+                cmp             al,4
+                jg              @@NextParam
+
+                ; Get the serial port base address from the BIOS
+                call            DetectSerial
+                mov             es:SerialPortAddr,ax    ; Set port address
+                mov             es:OutMode,M_SERIAL     ; Select serial output mode
 @@NextParam:    sub             si,3                    ; Only step a byte at a time
-		dec             cx                      ; We've consumed a char
-		cmp             cx,0                    ; Consumed all chars?
-		jg              @@ParseCmdline
+                dec             cx
+                cmp             cx,0
+                jne             @@ParseCmdline
 @@CheckPorts:   pop             ds                      ; Finished parsing so restore ds
 
 		; Check we have valid port ranges
@@ -153,12 +170,18 @@ Init:           ; Ensure ds=cs
 		cmp             es:MPUDataPortAddr,0350h
 		jg              PrintHelp
 		cmp             es:SBPortAddr,0220h
-		jl              PrintHelp
+                jl              @@SBPortNotOK
 		cmp             es:SBPortAddr,0280h
-		jg              PrintHelp
+                jle             @@SBPortOK
 
-		; Write the port addresses into our strings
-		mov             bx,es:MPUDataPortAddr
+@@SBPortNotOK:  ; The SB port was out of range
+                ; That's only OK if we're in serial mode
+                cmp             es:OutMode,M_SERIAL
+                jne             PrintHelp
+                mov             es:SBPortAddr,0
+
+@@SBPortOK:     ; Write the port addresses into our strings
+                mov             bx,es:MPUDataPortAddr
 		mov             ax,bx
 		shr             ax,8
 		call            NumToChar
@@ -186,14 +209,35 @@ Init:           ; Ensure ds=cs
 		and             al,0Fh
 		call            NumToChar
 		mov             SBPortNum+2,al
+                mov             bx,es:SerialPortAddr
+		mov             ax,bx
+		shr             ax,8
+		call            NumToChar
+                mov             COMPortNum,al
+		mov             ax,bx
+		shr             ax,4
+		and             al,0Fh
+		call            NumToChar
+                mov             COMPortNum+1,al
+		mov             ax,bx
+		and             al,0Fh
+		call            NumToChar
+                mov             COMPortNum+2,al
 
 		; Check we have a valid IRQ
 		cmp             es:SBIRQ,2
-		jl              PrintHelp
+                jl              @@SBIRQNotOK
 		cmp             es:SBIRQ,11
-		jg              PrintHelp
+                jle             @@SBIRQOK
 
-		; Write the IRQ into our string
+@@SBIRQNotOK:   ; The SB IRQ was out of range
+                ; That's only OK if we're in serial mode
+                cmp             es:OutMode,M_SERIAL
+                jne             PrintHelp
+                mov             es:SBIRQ,0
+                mov             es:SBPortAddr,0         ; Zero the SB port too
+
+@@SBIRQOK:      ; Write the IRQ into our string
 		mov             al,es:SBIRQ
 		cmp             al,10
 		jl              @@SingleDigit           ; More than one digit needed?
@@ -267,7 +311,7 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET NoEMM
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
 @@FoundEMM:     ; Check if already loaded
 		; Disable interrupts so registers aren't pushed to memory
@@ -277,11 +321,12 @@ Init:           ; Ensure ds=cs
 		mov		ebx,es:[si]
                 inc             ebx                     ; Installed TSRs ID is IDString+1
 
-		; Iterate through base + high memory and look for string
+                ; Iterate through base + high memory and look for string
 		push            ds
 		xor		cx,cx
 		mov             si,cx
 		mov		ds,cx
+                cld                                     ; Auto increment si
 @@CompareNext:  lodsb                                   ; Low word/low byte
                 mov             dl,al                   ; Save in dl
                 lodsb                                   ; Low/high
@@ -305,7 +350,7 @@ Init:           ; Ensure ds=cs
 		pop             ds
 		popf                                    ; Enable interrupts
 
-		; Check we've got a BIOS with RTC support
+                ; Check we've got a BIOS with RTC support
 		call            DetectRTC
 		jnc             @@RTCOK
 
@@ -313,11 +358,11 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET RTCError
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
-@@RTCOK:        ; No HW MPU init for SB-MIDI mode
-                cmp             es:SBMIDI,1
-                je              @@SkipUART
+@@RTCOK:        ; Only init HW MPU when required
+                cmp             es:OutMode,M_MPU401
+                jne             @@SkipUART
 
                 ; Try to init the MPU interface and switch to UART mode
 		call            SwitchToUART
@@ -331,7 +376,7 @@ Init:           ; Ensure ds=cs
 		int             021h
 		mov             dx,OFFSET MPUErrorEnd
 		int             021h
-		jmp             Terminate
+                jmp             Terminate
 
 @@UARTOK:       ; MPU detected
 		mov             ah,9
@@ -342,16 +387,40 @@ Init:           ; Ensure ds=cs
 		mov             dx,OFFSET MPUSuccessEnd
 		int             021h
 
+@@SkipUART:     ; Only init serial interface when required
+                cmp             es:OutMode,M_SERIAL
+                jne             @@NoSerial
+                mov             ah,9
+                cmp             es:SerialPortAddr,0
+                jne             @@SerialOK
+                mov             dx,OFFSET COMError
+                int             021h
+                jmp             Terminate
+@@SerialOK:     mov             dx,OFFSET COMSuccessStart
+                int             021h
+                mov             dx,OFFSET COMPortNum
+                int             021h
+                mov             dx,OFFSET COMSuccessEnd
+                int             021h
+                cmp             es:SBPortAddr,0
+                jne             @@NoSerial
+                mov             dx,OFFSET MPUIRQDisabled
+                int             021h
+
+@@NoSerial:     ; Only init SB when required
+                cmp             es:SBPortAddr,0
+                je              @@NoSBMIDI
+
                 ; Try to detect a Sound Blaster at the specified port & irq
-@@SkipUART:     call            DetectSB
+                call            DetectSB
 		jnc             @@SBOK
 
 		; Failed to detect a Sound Blaster
-		mov             ah,9
+                mov             ah,9
 		mov             dx,OFFSET SBErrorStart
 		int             021h
 		mov             dx,OFFSET SBPortNum
-		int             021h
+                int             021h
 		mov             dx,OFFSET SBErrorMid
 		int             021h
 		mov             dx,OFFSET SBIRQNum
@@ -364,17 +433,23 @@ Init:           ; Ensure ds=cs
 		mov             ah,9
 		mov             dx,OFFSET SBSuccessStart
 		int             021h
+                mov             dx,OFFSET SBDSPVer
+		int             021h
+                mov             dx,OFFSET SBSuccessMid1
+		int             021h
 		mov             dx,OFFSET SBPortNum
 		int             021h
-		mov             dx,OFFSET SBSuccessMid
+                mov             dx,OFFSET SBSuccessMid2
 		int             021h
 		mov             dx,OFFSET SBIRQNum
 		int             021h
 		mov             dx,OFFSET SBSuccessEnd
 		int             021h
-                cmp             es:SBMIDI,0
-                je              @@NoSBMIDI
+                cmp             es:OutMode,M_SBMIDI
+                jne             @@NoSBMIDI
                 mov             dx,OFFSET SBMIDIEnabled
+                int             021h
+                mov             dx,OFFSET MPUIRQDisabled
                 int             021h
 @@NoSBMIDI:     cmp             es:DelaySysex,0
                 je              @@NoDelay
@@ -397,7 +472,7 @@ EMMOK:          ; Ensure ds=cs
 		mov             DWORD PTR es:[si],eax   ; Store complete ID string
 
                 ; Install support handlers
-                call            InstTimerISR            ; Install the IRQ 2/8 watchdog
+                call            InstTimerISR            ; Install the IRQ 2 watchdog
                 call            InstDOSISR              ; Install the exec handler
 
                 ; Set RTC busy flag
@@ -410,6 +485,12 @@ EMMOK:          ; Ensure ds=cs
                 mov             si,0A0h
                 mov             BYTE PTR ds:[si],1      ; Set busy flag
                 pop             ds
+
+                ; Disable RTC interrupts
+                in              al,0A1h
+                or              al,01h                  ; Set bit 0 = IRQ 8 (RTC)
+                jmp             SHORT $+2               ; Short pause
+                out             0A1h,al
 
 		; Register our new timer handler
 		mov             dx,OFFSET es:Int70Handler
@@ -438,26 +519,23 @@ EMMOK:          ; Ensure ds=cs
 		mov             al,0Ah
 		call            WriteRTC
 
-                ; Enable RTC interrupts
-                pushf
-                cli                                     ; No interrupts while programming PIC
-                in              al,0A1h
-                and             al,0FEh                 ; Clear bit 0 = IRQ 8 (RTC)
-                jmp             SHORT $+2               ; Short pause
-                out             0A1h,al
-                popf                                    ; Start RTC interrupts
-
 		; Print success message
 		mov             ah,9
 		mov             dx,OFFSET LoadedStart
 		int             021h
 		mov             dx,OFFSET MPUPortNum
 		int             021h
+
+                ; Don't print IRQ in SB-MIDI mode or if no Sound Blaster
+                cmp             es:OutMode,M_SBMIDI
+                je              @@NoIRQMsg
+                cmp             es:SBPortAddr,0
+                je              @@NoIRQMsg
 		mov             dx,OFFSET LoadedMid
 		int             021h
 		mov             dx,OFFSET SBIRQNum
 		int             021h
-		mov             dx,OFFSET LoadedEnd
+@@NoIRQMsg:     mov             dx,OFFSET LoadedEnd
 		int             021h
 		pop             ds
 

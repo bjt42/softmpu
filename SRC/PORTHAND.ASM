@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt, elianda
+; Copyright (C) 2013-2014 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ QEMMPortHandler:ASSUME          ds:_DATA                ; RM handler, access loc
                 mov             SavedSS,ss
                 mov             SavedBP,bp
                 mov             SavedSP,sp
-                mov             SavedBX,bx
+                mov             WORD PTR SavedEBX,bx
 
                 ; Set local stack
                 mov             bx,cs
@@ -183,7 +183,7 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
                 mov             bp,bx
                 mov             bx,SavedSP
                 mov             sp,bx
-                mov             bx,SavedBX
+                mov             bx,WORD PTR SavedEBX
                 popf                                    ; Enable interrupts
                 clc
                 retf

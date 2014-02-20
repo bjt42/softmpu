@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt, elianda
+; Copyright (C) 2013-2014 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -35,15 +35,18 @@ DataHandlerAddr DW              OFFSET PortHandler
 MPUCmdPortAddr  DW              ?                       ; Set from cmdline
 CmdHandlerAddr  DW              OFFSET PortHandler
 
-SBPortAddr      DW              0
-SBIRQ           DB              0
-SBMIDI          DB              0
-DelaySysex      DB              0
-FakeAllNotesOff DB              0
+SBPortAddr      DW              0                       ; Set from cmdline
+SBIRQ           DB              0                       ; Set from cmdline
+SerialPortAddr  DW              0                       ; Set from cmdline
+DelaySysex      DB              0                       ; Set from cmdline
+FakeAllNotesOff DB              0                       ; Set from cmdline
+
+OutMode         OutputMode      M_MPU401                ; MIDI output mode control
 
 VirtualisePorts DB              0                       ; Port virtualisation control
 SBEOI           DB              1                       ; SB ISR EOI control
-SBIRQGen        DB              1                       ; SB IRQ generation control
+SBIRQGen        DB              0                       ; SB IRQ generation control
+MPUVerFix       DB              0                       ; MPU version fix for Gateway
 
 OldSBISR        LABEL           DWORD
 OldSBISRAddr    DW              ?
@@ -71,6 +74,7 @@ IDString        DB              '0S2M'                  ; Detection string
                 INCLUDE         appstr.asm              ; App ID substrings
                 INCLUDE         inthand.asm             ; Interrupt handlers
 		INCLUDE         porthand.asm            ; Port handler code
+                INCLUDE         resutils.asm            ; Resident utility routines
 
                 ASSUME          ds:_DATA                ; Access local vars via cs
 
@@ -130,7 +134,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SBMIDI,DelaySysex,FakeAllNotesOff
+@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SerialPortAddr,OutMode,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init

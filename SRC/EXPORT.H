@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 2002-2012  The DOSBox Team
- *  Copyright (C) 2013       bjt, elianda
+ *  Copyright (C) 2013-2014  bjt, elianda
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ typedef unsigned int Bitu;
 
 typedef enum bool {false = 0,true = 1} bool;
 typedef enum EventID {MPU_EVENT,RESET_DONE,EOI_HANDLER,NUM_EVENTS} EventID;
+typedef enum OutputMode {M_MPU401,M_SBMIDI,M_SERIAL} OutputMode;
 
 /* SOFTMPU: QEMM interface parameters */
 typedef struct {
@@ -46,8 +47,9 @@ typedef struct {
 /* Interface functions */
 void PIC_Update(bool blocking);
 
-void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,bool sbmidi,bool delaysysex,bool fakeallnotesoff);
+void MPU401_Init(void far* qpientry,Bitu sbport,Bitu irq,Bitu mpuport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff);
 void MPU401_SetEnableSBIRQ(bool enable);
+void MPU401_SetEnableMPUVerFix(bool enable);
 Bitu MPU401_ReadStatus(void);
 void MPU401_WriteCommand(Bitu val);
 Bitu MPU401_ReadData(void);

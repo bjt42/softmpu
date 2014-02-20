@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013 bjt, elianda
+; Copyright (C) 2013-2014 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -176,7 +176,62 @@ ResetMPU:       mov             SecondReset,0
 @@ResetFailed2: stc
                 retn                                    ; Failed to reset
 
-DetectSB:       ; Try to detect a Sound Blaster at the specifed port & irq
+DetectSB:       ; Attempt a DSP reset
+                mov             dx,es:SBPortAddr
+                add             dx,06h                  ; Select DSP reset port
+                mov             al,1                    ; Write 1 to trigger reset
+                out             dx,al
+                mov             al,0
+@@DelayLoop:    dec             al                      ; 0FFh on entry
+                jnz             @@DelayLoop             ; Wait for >3us
+                out             dx,al                   ; Write 0 to reset port
+                mov             cx,0
+@@NextTry:      mov             dx,es:SBPortAddr
+                add             dx,0Eh                  ; Select read buffer status port
+                in              al,dx
+                or              al,al                   ; Check for waiting data
+                jns             @@SkipRead
+                sub             dx,04h                  ; Select DSP data port
+                in              al,dx
+                cmp             al,0AAh                 ; Check for success code
+                je              @@SBResetOK
+@@SkipRead:     loop            @@NextTry
+
+                ; Failed to reset the DSP
+                stc
+                retn
+
+@@SBResetOK:    ; Get the SB DSP version
+                mov             dx,es:SBPortAddr
+		add             dx,0Ch                  ; Select DSP command port
+                mov             al,0E1h                 ; DSP cmd 0xE1 = Get DSP version number
+                out             dx,al
+                add             dx,02h                  ; Select read buffer status port
+@@WaitVersion:  in              al,dx
+                or              al,al                   ; Check for waiting data
+                jns             @@WaitVersion
+                sub             dx,04h                  ; Select DSP data port
+                in              al,dx
+                call            NumToChar               ; Generate ASCII number
+                mov             SBDSPVer+0,al           ; Write the major version out
+                add             dx,04h
+@@WaitVersion2: in              al,dx                   ; Check for waiting data
+                or              al,al
+                jns             @@WaitVersion2
+                sub             dx,04h
+                in              al,dx
+
+                ; Parse the minor version
+                mov             ah,0
+                mov             bl,10
+                div             bl
+                call            NumToChar
+                mov             SBDSPVer+2,al           ; Write the minor version units out
+                mov             al,ah
+                call            NumToChar
+                mov             SBDSPVer+3,al           ; Write the minor version tens out
+
+                ; Try to detect a Sound Blaster at the specifed port & irq
                 mov             al,es:SBIRQ             ; Get hardware irq number
 		add             al,8
 		cmp             al,010h
@@ -292,7 +347,7 @@ DetectRTC:      push            es
                 stc
                 retn                                    ; Failed to detect RTC
 
-InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) & 8 (RTC) remain unmasked
+InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) remains unmasked
                 ; Doesn't matter if the timer frequency is increased by another app later
                 ; Save the existing handler
 		push            es
@@ -335,3 +390,41 @@ InstDOSISR:     ; Install a handler on int 21h for exec (4Bh) calls
                 int             021h                    ; Register new handler
                 pop             ds
                 retn
+
+DetectSerial:   ; Find the BIOS address of the specified COM port
+                ; Input COM number in al
+                ; Output port address in ax (0=not present)
+                push            ds
+                mov             bx,040h
+                mov             ds,bx
+                dec             al
+                mov             bl,2
+                mul             bl                      ; Calculate the offset
+                push            si
+                mov             si,ax
+                mov             ax,[si]                 ; Get port address from BIOS
+                pop             si
+                pop             ds
+
+                ; If we found an interface, configure it
+                cmp             ax,0
+                je              @@NoConfig
+                push            ax
+                mov             dx,ax
+                add             dx,03h                  ; Select line control reg
+                mov             al,080h                 ; Enable rate divisor latch
+                out             dx,al
+                sub             dx,03h                  ; Select low rate divisor
+                mov             al,3                    ; 38400 baud
+                out             dx,al
+                add             dx,01h                  ; Select high rate divisor
+                mov             al,0                    ; 38400 baud
+                out             dx,al
+                add             dx,02h                  ; Select line control reg
+                mov             al,03h                  ; 8N1, no break, disable rate divisor latch
+                out             dx,al
+                add             dx,01h                  ; Select modem control reg
+                mov             al,03h                  ; Disable interrupts & loopback
+                out             dx,al
+                pop             ax
+@@NoConfig:     retn
