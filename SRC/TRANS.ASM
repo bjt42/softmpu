@@ -81,6 +81,10 @@ Init:           ; Ensure ds=cs
 		je              @@EnableDelay
 		cmp             eax,'led/'
                 je              @@EnableDelay
+                cmp             eax,'ral/'
+                je              @@EnableLarge
+                cmp             eax,'RAL/'
+                je              @@EnableLarge
                 cmp             eax,'5AR/'
                 je              @@EnableFakeOff
                 cmp             eax,'5ar/'
@@ -88,6 +92,8 @@ Init:           ; Ensure ds=cs
 @@EnableFakeOff:mov             es:FakeAllNotesOff,1    ; Enable simulated "All Notes Off"
                 jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
+		jmp             @@NextParam
+@@EnableLarge:  mov             es:SysexBufSize,MaxSysexBufSize ; Enable large sysex buffer
 		jmp             @@NextParam
 @@EnableSBMIDI: mov             es:OutMode,M_SBMIDI     ; Enable SB-MIDI mode
                 jmp             @@NextParam
@@ -455,11 +461,21 @@ Init:           ; Ensure ds=cs
                 je              @@NoDelay
                 mov             dx,OFFSET DelaysEnabled
                 int             021h                    ; Print sysex delay message
-@@NoDelay:      cmp             es:FakeAllNotesOff,0
+@@NoDelay:      cmp             es:SysexBufSize,MaxSysexBufSize
+                jne             @@NoLarge
+                mov             dx,OFFSET LargeEnabled
+                int             021h                    ; Print large sysex message
+@@NoLarge:      cmp             es:FakeAllNotesOff,0
                 je              @@NoFakeNotes
                 mov             dx,OFFSET FakeEnabled
                 int             021h
-@@NoFakeNotes:  pop             ds
+
+@@NoFakeNotes:  ; Calculate sysex buffer offset relative to data segment
+                mov             ax,SEG SysexBufSeg
+                sub             ax,SEG _DATA
+                shl             ax,4                    ; Convert to offset
+                mov             es:SysexBufAddr,ax
+                pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs
@@ -549,8 +565,12 @@ EMMOK:          ; Ensure ds=cs
 		int             021h                    ; Deallocate environment
 		pop             es
                 mov             es:VirtualisePorts,1    ; Enable port virtualisation
+
+                ; TSR and release the init stack, transient and sysex segments
 		mov             ah,031h
-                mov             dx,SEG STACK            ; Int handlers have their own stack
+                mov             dx,SEG SysexBufSeg
+                shr             es:SysexBufSize,4       ; Calc buffer para size
+                add             dx,es:SysexBufSize
 		sub             dx,bx                   ; Calc resident size from PSP in para
 		int             021h                    ; TSR
 

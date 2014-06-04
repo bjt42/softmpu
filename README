@@ -54,6 +54,9 @@ FURTHER OPTIONS
 The optional /DELAYSYSEX switch enables small transmission delays to prevent
 buffer overflow with the Rev.0 MT-32.
 
+The optional /LARGESYSEX switch enables support for large SYSEX messages but
+occupies an additional 7KB.
+
 The optional /RA50 switch enables simulated "All Notes Off" commands for
 compatibility with the Roland RA-50.
 

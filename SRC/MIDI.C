@@ -52,14 +52,15 @@
 typedef unsigned long Bit32u;
 typedef int Bits;
 
-#define SYSEX_SIZE 1024
+/* SOFTMPU: Sysex buffer is now allocated externally */
+/*#define SYSEX_SIZE 1024*/
 #define RAWBUF  1024
 
 /* SOFTMPU: Note tracking for RA-50 */
 #define MAX_TRACKED_CHANNELS 16
 #define MAX_TRACKED_NOTES 8
 
-static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.8    \x25\xf7"; /* SOFTMPU */
+static char* MIDI_welcome_msg = "\xf0\x41\x10\x16\x12\x20\x00\x00    SoftMPU v1.9    \x24\xf7"; /* SOFTMPU */
 
 static Bit8u MIDI_note_off[3] = { 0x80,0x00,0x00 }; /* SOFTMPU */
 
@@ -105,7 +106,8 @@ static struct {
 	Bit8u cmd_buf[8];
 	Bit8u rt_buf[8];
 	struct {
-		Bit8u buf[SYSEX_SIZE];
+                Bit8u* buf;
+                Bitu maxsize;
 		Bitu used;
 		Bitu delay;
 		Bit32u start;
@@ -357,7 +359,7 @@ void MIDI_RawOutByte(Bit8u data) {
 	/* Test for a active sysex tranfer */
 	if (midi.status==0xf0) {
 		if (!(data&0x80)) { 
-			if (midi.sysex.used<(SYSEX_SIZE-1)) midi.sysex.buf[midi.sysex.used++] = data;
+                        if (midi.sysex.used<(midi.sysex.maxsize-1)) midi.sysex.buf[midi.sysex.used++] = data; /* SOFTMPU */
 			return;
 		} else {
 			midi.sysex.buf[midi.sysex.used++] = 0xf7;
@@ -445,8 +447,10 @@ bool MIDI_Available(void)  {
 }
 
 /* SOFTMPU: Initialisation */
-void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff){
+void MIDI_Init(Bit8u* sysexbuf,Bitu maxsysexsize,Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff){
         Bitu i; /* SOFTMPU */
+        midi.sysex.buf = sysexbuf;
+        midi.sysex.maxsize = maxsysexsize;
 	midi.sysex.delay = 0;
 	midi.sysex.start = 0;
 	MIDI_sysex_delay = 0; /* SOFTMPU */

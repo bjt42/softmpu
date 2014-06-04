@@ -35,6 +35,9 @@ DataHandlerAddr DW              OFFSET PortHandler
 MPUCmdPortAddr  DW              ?                       ; Set from cmdline
 CmdHandlerAddr  DW              OFFSET PortHandler
 
+SysexBufSize    DW              1024                    ; Default size, set from cmdline
+SysexBufAddr    DW              ?
+
 SBPortAddr      DW              0                       ; Set from cmdline
 SBIRQ           DB              0                       ; Set from cmdline
 SerialPortAddr  DW              0                       ; Set from cmdline
@@ -134,7 +137,7 @@ Start:          push            es
 		mov             es,ax                   ; Copy cs->es for var access from init
 		jmp             FAR PTR EMMErr          ; Fail
 
-@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SBPortAddr,SBIRQ,MPUDataPortAddr,SerialPortAddr,OutMode,DelaySysex,FakeAllNotesOff
+@@InitSoftMPU:  INVOKE          MPU401_Init,QPIEntry,SysexBufAddr,SysexBufSize,SBPortAddr,SBIRQ,MPUDataPortAddr,SerialPortAddr,OutMode,DelaySysex,FakeAllNotesOff
 		push            es
 		mov             ax,cs
 		mov             es,ax                   ; Copy cs->es for var access from init
