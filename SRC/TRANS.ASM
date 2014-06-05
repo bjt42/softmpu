@@ -566,12 +566,14 @@ EMMOK:          ; Ensure ds=cs
 		pop             es
                 mov             es:VirtualisePorts,1    ; Enable port virtualisation
 
-                ; TSR and release the init stack, transient and sysex segments
-		mov             ah,031h
+                ; TSR and release the init stack, transient and any unused sysex segments
+                ; Int handlers have their own stack
                 mov             dx,SEG SysexBufSeg
-                shr             es:SysexBufSize,4       ; Calc buffer para size
-                add             dx,es:SysexBufSize
+                mov             ax,es:SysexBufSize
+                shr             ax,4                    ; Get buffer para size
+                add             dx,ax
 		sub             dx,bx                   ; Calc resident size from PSP in para
+		mov             ah,031h
 		int             021h                    ; TSR
 
 PrintHelp:      mov             ah,9

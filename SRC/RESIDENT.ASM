@@ -35,7 +35,7 @@ DataHandlerAddr DW              OFFSET PortHandler
 MPUCmdPortAddr  DW              ?                       ; Set from cmdline
 CmdHandlerAddr  DW              OFFSET PortHandler
 
-SysexBufSize    DW              1024                    ; Default size, set from cmdline
+SysexBufSize    DW              0400h                   ; 1k default size, set from cmdline
 SysexBufAddr    DW              ?
 
 SBPortAddr      DW              0                       ; Set from cmdline
@@ -102,7 +102,7 @@ Start:          push            es
 		mov             si,OFFSET PortTable
 		mov             di,SEG _DATA            ; We set up our own data selector
 		sub             di,SEG _TEXT
-		shl             di,4                    ; Calculate offset to resident end
+                shl             di,4                    ; Calculate offset to resident code end
 		mov             ax,04A15h
 		mov             bx,0
                 stc                                     ; Fail by default

@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.9 ',0FEh,' Software MPU-401 Emulator ',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU TEST ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
                 DB              0B3h,'                                        ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013-2014  bjt, elianda   ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013  The DOSBox Team',0B3h,0Dh,0Ah
@@ -64,7 +64,7 @@ COMSuccessEnd   DB              0Dh,0Ah,'$'
 COMPortNum      DB              '   ','$'
 SBMIDIEnabled   DB              'i SB-MIDI mode enabled',0Dh,0Ah,'$'
 DelaysEnabled   DB              'i SYSEX delays enabled',0Dh,0Ah,'$'
-LargeEnabled    DB              'i Large SYSEX support enabled','$'
+LargeEnabled    DB              'i Large SYSEX support enabled',0Dh,0Ah,'$'
 FakeEnabled     DB              'i Simulated "All Notes Off" enabled',0Dh,0Ah,'$'
 MPUIRQDisabled  DB              'i MPU-401 interrupts disabled',0Dh,0Ah,'$'
 LoadedStart     DB              0Dh,0Ah,0Eh,' SoftMPU active at port ','$'
@@ -80,7 +80,7 @@ HelpText        DB              'Usage: SOFTMPU /MPU:nnn [/SB:nnn /IRQ:nn] [/OUT
                 DB              '  outputs        SBMIDI  Sound Blaster MIDI',0Dh,0Ah
                 DB              '                 COMn    Serial interface (1-4)',0Dh,0Ah
                 DB              '  /DELAYSYSEX  Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah
-                DB              '  /LARGESYSEX  Use large SYSEX buffer',0Dh,0Ah
+                DB              '  /LARGESYSEX  Support large SYSEX messages',0Dh,0Ah
                 DB              '  /RA50        Simulate "All Notes Off" for Roland RA-50',0Dh,0Ah,'$'
 EMMDevice       DB              'EMMXXXX0',00h
 EMMDevice2      DB              'EMMQXXX0',00h

@@ -77,7 +77,7 @@
 ;
 ; 1.9
 ;
-; - Large SYSEX buffer support
+; - Large SYSEX message support
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init
@@ -85,11 +85,11 @@ StackSize       EQU             0400h                   ; 1k stack for init
 		.MODEL          SMALL,C                 ; Match model of MPU objfile
 		.386                                    ; 16-bit segments
 
-                ; Insert a segment before the init stack for the largest sysex buffer
-                ; Remaining memory is released on TSR
+                ; Reserve memory before the init stack for the large sysex buffer
+                ; Any unused memory is released on TSR
 SysexBufSeg     SEGMENT 'sysexbuf'
 
-MaxSysexBufSize EQU             8192
+MaxSysexBufSize EQU             02000h                  ; 8k max size
 SysexBuf        DB              MaxSysexBufSize DUP (?)
 
 		.STACK          StackSize

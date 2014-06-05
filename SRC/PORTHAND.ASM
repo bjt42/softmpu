@@ -78,11 +78,12 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
 @@PortHandler2: cmp             HookedGDT,1             ; Have we hooked the GDT yet?
 		je              @@SetDataSel
 
-		; We need access to _DATA for our C procedures
+                ; We need PM access to DATA/BSS/SYSEXBUF for our C procedures
 		; So, find a free entry in the GDT and set it up
 		; We assume selector 08h points to the GDT itself (!)
 		; Seems to be the case at least for DOS 6.22 EMM386 and later
 		pusha                                   ; At least we only do this once
+                mov             dx,SysexBufSize         ; Save prior to ds change
 		push            ds
 		mov             ax,08h
 		mov             ds,ax                   ; Select GDT seg 08h
@@ -103,9 +104,10 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
 							; next time.
 
 @@FreeEntry:    ; Found a free entry. Set up our new selector
-		mov             ax,SEG STACK
-		sub             ax,SEG _DATA
-		shl             ax,4
+                mov             ax,SEG SysexBufSeg
+                sub             ax,SEG _DATA
+                shl             ax,4                    ; Convert to byte offset
+                add             ax,dx                   ; Add sysex buffer size
 		dec             ax                      ; Limit is inclusive rather than end ptr
 		mov             [si],ax                 ; Set data seg size (assume <64K)
 		mov             ax,SEG _DATA
