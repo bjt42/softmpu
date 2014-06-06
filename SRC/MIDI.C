@@ -109,6 +109,7 @@ static struct {
                 Bit8u* buf;
                 Bitu maxsize;
 		Bitu used;
+                Bitu usedbufs;
 		Bitu delay;
 		Bit32u start;
 	} sysex;
@@ -358,28 +359,36 @@ void MIDI_RawOutByte(Bit8u data) {
 	}        
 	/* Test for a active sysex tranfer */
 	if (midi.status==0xf0) {
-		if (!(data&0x80)) { 
-                        if (midi.sysex.used<(midi.sysex.maxsize-1)) midi.sysex.buf[midi.sysex.used++] = data; /* SOFTMPU */
+		if (!(data&0x80)) {
+                        /* SOFTMPU: Arbitrary-length SYSEX support */
+                        /*if (midi.sysex.used<(midi.sysex.maxsize-1))*/ midi.sysex.buf[midi.sysex.used++] = data;
+
+                        if (midi.sysex.used==midi.sysex.maxsize)
+                        {
+                                PlayMsg(midi.sysex.buf, midi.sysex.maxsize);
+                                midi.sysex.used = 0;
+                                midi.sysex.usedbufs++;
+                        }
 			return;
 		} else {
-			midi.sysex.buf[midi.sysex.used++] = 0xf7;
+                        midi.sysex.buf[midi.sysex.used++] = 0xf7;
 
-			if ((midi.sysex.start) && (midi.sysex.used >= 4) && (midi.sysex.used <= 9) && (midi.sysex.buf[1] == 0x41) && (midi.sysex.buf[3] == 0x16)) {
+                        if ((midi.sysex.start) && (midi.sysex.usedbufs == 0) && (midi.sysex.used >= 4) && (midi.sysex.used <= 9) && (midi.sysex.buf[1] == 0x41) && (midi.sysex.buf[3] == 0x16)) {
 				/*LOG(LOG_ALL,LOG_ERROR)("MIDI:Skipping invalid MT-32 SysEx midi message (too short to contain a checksum)");*/ /* SOFTMPU */
 			} else {
 				/*LOG(LOG_ALL,LOG_NORMAL)("Play sysex; address:%02X %02X %02X, length:%4d, delay:%3d", midi.sysex.buf[5], midi.sysex.buf[6], midi.sysex.buf[7], midi.sysex.used, midi.sysex.delay);*/
 				PlayMsg(midi.sysex.buf, midi.sysex.used); /* SOFTMPU */
-				if (midi.sysex.start) {
-					if (midi.sysex.buf[5] == 0x7F) {
+                                if (midi.sysex.start) {
+                                        if ((midi.sysex.usedbufs == 0) && midi.sysex.buf[5] == 0x7F) {
                                             /*midi.sysex.delay = 290;*/ /* SOFTMPU */ // All Parameters reset
                                             MIDI_sysex_delay = 290*(RTCFREQ/1000);
-					} else if (midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x04) {
+                                        } else if ((midi.sysex.usedbufs == 0) && midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x04) {
                                             /*midi.sysex.delay = 145;*/ /* SOFTMPU */ // Viking Child
                                             MIDI_sysex_delay = 145*(RTCFREQ/1000);
-					} else if (midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x01) {
+                                        } else if ((midi.sysex.usedbufs == 0) && midi.sysex.buf[5] == 0x10 && midi.sysex.buf[6] == 0x00 && midi.sysex.buf[7] == 0x01) {
                                             /*midi.sysex.delay = 30;*/ /* SOFTMPU */ // Dark Sun 1
                                             MIDI_sysex_delay = 30*(RTCFREQ/1000);
-                                        } else MIDI_sysex_delay = ((midi.sysex.used/2)+2)*(RTCFREQ/1000); /*(Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                                        } else MIDI_sysex_delay = ((((midi.sysex.usedbufs*midi.sysex.maxsize)+midi.sysex.used)/2)+2)*(RTCFREQ/1000); /*(Bitu)(((float)(midi.sysex.used) * 1.25f) * 1000.0f / 3125.0f) + 2;
                                         midi.sysex.start = GetTicks();*/ /* SOFTMPU */
 				}
 			}
@@ -397,6 +406,7 @@ void MIDI_RawOutByte(Bit8u data) {
 		if (midi.status==0xf0) {
 			midi.sysex.buf[0]=0xf0;
 			midi.sysex.used=1;
+                        midi.sysex.usedbufs=0; /* SOFTMPU */
 		}
 	}
 	if (midi.cmd_len) {
