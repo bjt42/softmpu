@@ -64,14 +64,13 @@ COMSuccessEnd   DB              0Dh,0Ah,'$'
 COMPortNum      DB              '   ','$'
 SBMIDIEnabled   DB              'i SB-MIDI mode enabled',0Dh,0Ah,'$'
 DelaysEnabled   DB              'i SYSEX delays enabled',0Dh,0Ah,'$'
-LargeEnabled    DB              'i Large SYSEX support enabled',0Dh,0Ah,'$'
 FakeEnabled     DB              'i Simulated "All Notes Off" enabled',0Dh,0Ah,'$'
 MPUIRQDisabled  DB              'i MPU-401 interrupts disabled',0Dh,0Ah,'$'
 LoadedStart     DB              0Dh,0Ah,0Eh,' SoftMPU active at port ','$'
 LoadedMid       DB              ' IRQ ','$'
 LoadedEnd       DB              0Dh,0Ah,'$'
 HelpText        DB              'Usage: SOFTMPU /MPU:nnn [/SB:nnn /IRQ:nn] [/OUTPUT:[outputs]]',0Dh,0Ah
-                DB              '               [/DELAYSYSEX] [/LARGESYSEX] [/RA50]',0Dh,0Ah
+                DB              '               [/DELAYSYSEX] [/RA50]',0Dh,0Ah
                 DB              0Dh,0Ah
                 DB              '  /MPU:nnn     MPU-401 base port address (220-350)',0Dh,0Ah
                 DB              '  /SB:nnn      Sound Blaster base port address (220-280)',0Dh,0Ah
@@ -80,7 +79,6 @@ HelpText        DB              'Usage: SOFTMPU /MPU:nnn [/SB:nnn /IRQ:nn] [/OUT
                 DB              '  outputs        SBMIDI  Sound Blaster MIDI',0Dh,0Ah
                 DB              '                 COMn    Serial interface (1-4)',0Dh,0Ah
                 DB              '  /DELAYSYSEX  Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah
-                DB              '  /LARGESYSEX  Support large SYSEX messages',0Dh,0Ah
                 DB              '  /RA50        Simulate "All Notes Off" for Roland RA-50',0Dh,0Ah,'$'
 EMMDevice       DB              'EMMXXXX0',00h
 EMMDevice2      DB              'EMMQXXX0',00h
