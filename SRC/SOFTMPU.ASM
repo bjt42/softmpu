@@ -74,6 +74,10 @@
 ; - Tweaked playback speed
 ; - Fixed ESS ISA chipset detection
 ; - Fixed SYSEX delay timing
+;
+; 1.9
+;
+; - Large SYSEX message support
 ; ------------------------------------------
 
 StackSize       EQU             0400h                   ; 1k stack for init
