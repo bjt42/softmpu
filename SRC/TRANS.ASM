@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013-2014 bjt, elianda
+; Copyright (C) 2013-2018 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -175,9 +175,6 @@ Init:           ; Ensure ds=cs
                 jle             @@SBPortOK
 
 @@SBPortNotOK:  ; The SB port was out of range
-                ; That's only OK if we're in serial mode
-                cmp             es:OutMode,M_SERIAL
-                jne             PrintHelp
                 mov             es:SBPortAddr,0
 
 @@SBPortOK:     ; Write the port addresses into our strings
@@ -231,9 +228,6 @@ Init:           ; Ensure ds=cs
                 jle             @@SBIRQOK
 
 @@SBIRQNotOK:   ; The SB IRQ was out of range
-                ; That's only OK if we're in serial mode
-                cmp             es:OutMode,M_SERIAL
-                jne             PrintHelp
                 mov             es:SBIRQ,0
                 mov             es:SBPortAddr,0         ; Zero the SB port too
 
@@ -350,17 +344,7 @@ Init:           ; Ensure ds=cs
 		pop             ds
 		popf                                    ; Enable interrupts
 
-                ; Check we've got a BIOS with RTC support
-		call            DetectRTC
-		jnc             @@RTCOK
-
-		; Failed to detect the RTC
-		mov             ah,9
-		mov             dx,OFFSET RTCError
-		int             021h
-                jmp             Terminate
-
-@@RTCOK:        ; Only init HW MPU when required
+                ; Only init HW MPU when required
                 cmp             es:OutMode,M_MPU401
                 jne             @@SkipUART
 
