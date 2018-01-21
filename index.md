@@ -1,0 +1,115 @@
+**Update 16/06/14** - SoftMPU 1.9 is out! This release adds support for large SYSEX messages.
+
+**Update 20/02/14** - SoftMPU 1.8 is out! This release adds support for serial MIDI output, improves performance on slower systems and fixes compatibility with ESS ISA chipsets.
+***
+**Download SoftMPU here:** [http://github.com/bjt42/softmpu/archive/v1.9.zip](http://github.com/bjt42/softmpu/archive/v1.9.zip)
+
+**Discuss SoftMPU here:** [http://www.vogons.org/viewforum.php?f=57](http://www.vogons.org/viewforum.php?f=57)
+
+**Compatibility lists & serial MIDI cable pinouts:** [http://github.com/bjt42/softmpu/wiki] (http://github.com/bjt42/softmpu/wiki)
+***
+## SoftMPU 1.9 - Software MPU-401 Emulator
+Copyright (C) 2013-2014  bjt, elianda
+Copyright (C) 2002-2013  The DOSBox Team
+
+Release Notes (16/06/14)
+
+### WHAT IS IT?
+
+SoftMPU is a DOS TSR that emulates an 'intelligent mode' hardware MPU-401
+interface. It's designed to work in tandem with the MIDI interfaces found on
+Sound Blaster and other common sound cards.
+
+### WHY'S THIS USEFUL?
+
+Games from the late 80s and early 90s that support music via the Roland
+MT-32/CM-32L often expect to find a hardware MPU-401 interface that supports
+'intelligent mode'. These are now expensive and difficult to find.
+
+By supporting the 'intelligent mode' features in software, these games will
+work with the basic MIDI interfaces found on sound cards.
+
+### REQUIREMENTS
+
+- EMM386 4.46+ (MS-DOS 6.2) or QEMM 7.03+
+- Sound Blaster (or compatible) sound card (MPU-401 & SB-MIDI mode)
+- Serial port (Serial MIDI mode)
+
+### USING SOFTMPU: MPU-401 & SB-MIDI MODE
+
+Run SoftMPU specifying the base port address and interrupt of your Sound
+Blaster, and the base port address of the MPU-401 interface, e.g.
+
+  `SOFTMPU.EXE /SB:220 /IRQ:5 /MPU:330`
+
+The optional `/OUTPUT:SBMIDI` switch forces Sound Blaster MIDI to be used. This
+mode is intended for use with the Sound Blaster Pro 2 and other sound cards
+without a hardware MPU-401 interface. Game compatibility may be reduced.
+
+### USING SOFTMPU: SERIAL MIDI MODE
+
+Run SoftMPU specifying the serial interface to be used and the base port
+address of the MPU-401 interface, e.g.
+
+  `SOFTMPU.EXE /MPU:330 /OUTPUT:COM1`
+
+A Sound Blaster base port address and IRQ can optionally be specified if
+MPU-401 interrupts are required.
+
+### FURTHER OPTIONS
+
+The optional `/DELAYSYSEX` switch enables small transmission delays to prevent
+buffer overflow with the Rev.0 MT-32.
+
+The optional `/RA50` switch enables simulated "All Notes Off" commands for
+compatibility with the Roland RA-50.
+
+SoftMPU will remain active until the PC is restarted. It occupies
+approximately 8KB and can be loaded into high memory using the LH command.
+
+### TROUBLESHOOTING
+
+**Problem:**  When using a PS/2 mouse, moving the cursor causes slow playback.
+**Solution:** Use a mouse driver that supports direct hardware access e.g.
+              CuteMouse 2.0 (but not 2.1).
+
+**Problem:**  Some games expect to find an MPU interface on IRQ 2, but my sound
+              but my sound card doesn't support it.
+**Solution:** Configure your sound card to use IRQ 9.
+
+**Problem:**  SoftMPU can't find a hardware MPU interface when using a Sound
+              Blaster Pro 2 or older sound card.
+**Solution**: Run SoftMPU with the `/OUTPUT:SBMIDI` switch.
+
+**Problem:**  My Rev.0 MT-32 displays "EXC. BUFFER OVERFLOW". Music playback sounds incorrect.
+**Solution:** Run SoftMPU with the `/DELAYSYSEX` switch.
+
+**Problem:**  Music playback stops working after running a specific program.
+**Solution:** Restart your PC. Software that reprograms the Real-Time Clock will
+              stop SoftMPU from working correctly.
+
+### FURTHER INFO
+
+For compatibility information and serial MIDI cable pinouts, please see
+[http://github.com/bjt42/softmpu/wiki](http://github.com/bjt42/softmpu/wiki).
+
+### BUILDING SOFTMPU
+
+Microsoft C 6.0A & MASM 6.11 are required (earlier versions may work, but are
+untested).
+
+The default install directories are C:\C600 and C:\MASM611. You will need to
+edit BUILD.BAT if you have selected different install directories.
+
+Run BUILD.BAT to build SOFTMPU.EXE in the current directory.
+
+### DISTRIBUTION
+
+SoftMPU is distributed under the GNU General Public License. Please read
+LICENSE for further information.
+
+### SPECIAL THANKS
+
+- The DOSBox Team for their intelligent mode MPU-401 emulation code. SoftMPU
+  couldn't exist without it!
+- Forum members at www.vogons.org for their encouragement and advice :)
