@@ -1,4 +1,4 @@
-**Update 21/01/18** - SoftMPU 1.91 is out! This release adds support for Princess Maker and fixes issues with Compaq BIOS and standalone MPUs.
+**Update 21/01/18** - SoftMPU 1.91 is out! This release adds support for Princess Maker and fixes issues with Compaq BIOS and LPC MPUs.
 
 **Update 16/06/14** - SoftMPU 1.9 is out! This release adds support for large SYSEX messages.
 
@@ -7,7 +7,7 @@
 
 **Discuss SoftMPU here:** [http://www.vogons.org/viewforum.php?f=57](http://www.vogons.org/viewforum.php?f=57)
 
-**Compatibility lists & serial MIDI cable pinouts:** [http://github.com/bjt42/softmpu/wiki] (http://github.com/bjt42/softmpu/wiki)
+**Compatibility lists & serial MIDI cable pinouts:** [http://github.com/bjt42/softmpu/wiki](http://github.com/bjt42/softmpu/wiki)
 ***
 ## SoftMPU 1.91 - Software MPU-401 Emulator
 Copyright (C) 2013-2018  bjt, elianda
