@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013-2014 bjt, elianda
+; Copyright (C) 2013-2018 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -141,11 +141,8 @@ SwitchToUART:   call            ResetMPU                ; Ensure we're in a sane
 		mov             al,03Fh
 		out             dx,al                   ; Set UART cmd
 		call            WaitForDSR
-		jc              @@SwitchFailed          ; No ACK
 		mov             dx,es:MPUDataPortAddr
 		in              al,dx
-		cmp             al,0FEh
-		jne             @@SwitchFailed          ; No ACK
 		clc
 		retn                                    ; Now in UART mode
 
@@ -161,11 +158,8 @@ ResetMPU:       mov             SecondReset,0
 		mov             al,0FFh
 		out             dx,al                   ; Send reset cmd
 		call            WaitForDSR
-		jc              @@ResetFailed           ; No ACK
 		mov             dx,es:MPUDataPortAddr
 		in              al,dx
-		cmp             al,0FEh
-		jne             @@ResetFailed           ; No ACK
 		clc
                 retn                                    ; Now in normal mode
 
@@ -330,22 +324,6 @@ RestoreSBISR:   ; Restore the old SB handler
                 int             021h                    ; Register old handler
                 pop             ds
                 retn
-
-DetectRTC:      push            es
-                mov             ah,0C0h
-                int             015h                    ; Get configuration
-                jc              @@RTCNotDetected
-                mov             al,es:[bx+5]            ; Get feature info 1
-                test            al,020h                 ; Check for RTC
-                jz              @@RTCNotDetected
-                pop             es
-                clc                                     ; Got an RTC
-                retn
-
-@@RTCNotDetected:
-                pop             es
-                stc
-                retn                                    ; Failed to detect RTC
 
 InstTimerISR:   ; Install a handler on int 08h (IRQ 0/Timer) that makes sure IRQ 2 (cascade) remains unmasked
                 ; Doesn't matter if the timer frequency is increased by another app later

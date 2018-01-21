@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013-2014 bjt
+; Copyright (C) 2013-2018 bjt
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ AppIDStrings    DW              0EEC5h                  ; A-10 Tank Killer (A.EX
                 DW              0702Fh                  ; Laser Squad (LASER.EXE)
                 DW              0DF0Ch                  ; Laser Squad (LSQDBCC.EXE)
                 DW              0121Eh                  ; Laser Squad (SQUAD.EXE)
+                DW              0ADC4h                  ; Princess Maker (AUTOEXEC.EXE)
                 DW              02717h                  ; Princess Maker 2 (MMD.COM)
                 DW              03A59h                  ; Princess Maker 2 (PM2.EXE)
                 DW              04B38h                  ; Princess Maker 2 (PMDL.COM)
