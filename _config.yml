@@ -2,7 +2,7 @@ title: SoftMPU
 description: An MPU-401 emulation TSR for DOS
 google_analytics: UA-41968860-1
 show_downloads: true
-theme: jekyll-theme-modernist
+theme: jekyll-theme-midnight
 
 gems:
   - jekyll-mentions
