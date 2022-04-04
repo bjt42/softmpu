@@ -38,10 +38,6 @@ QEMMPortHandler:ASSUME          ds:_DATA                ; RM handler, access loc
 @@QEMMPortHandler2:
                 ; QEMM passes the caller's stack
                 ; Might be too small so we'll switch to our own
-                ; Might also pass the caller's flags so disable interrupts
-                pushf
-                cli
-
                 ; Save current stack + a scratch reg
                 ; Share a stack with the RTC handler
                 ; This should be safe as one should never interrupt the other
@@ -184,6 +180,5 @@ PortHandler:    ASSUME          ds:_TEXT                ; PM handler, can't read
                 mov             bx,SavedSP
                 mov             sp,bx
                 mov             bx,WORD PTR SavedEBX
-                popf                                    ; Enable interrupts
                 clc
                 retf
