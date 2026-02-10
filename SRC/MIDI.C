@@ -112,6 +112,7 @@ static struct {
 		Bit32u start;
 	} sysex;
         bool fakeallnotesoff;
+        bool redirectallsoundoff;
 	bool available;
 	/*MidiHandler * handler;*/ /* SOFTMPU */
 } midi;
@@ -431,10 +432,26 @@ void MIDI_RawOutByte(Bit8u data) {
                                 }
                                 /* SOFTMPU: Test for "All Notes Off" */
                                 else if (((midi.status&0xf0)==0xb0) &&
-                                         (midi.cmd_buf[1]>=0x7b) &&
-                                         (midi.cmd_buf[1]<=0x7f))
+                                         (midi.cmd_buf[1]>=0x7b))
                                 {
                                         FakeAllNotesOff(midi.status&0x0f);
+                                }
+                                else
+                                {
+                                        PlayMsg(midi.cmd_buf,midi.cmd_len);
+                                }
+                        }
+                        else if (midi.redirectallsoundoff)
+                        {
+                                /* SOFTMPU: Test for "All Sound Off" */
+                                if (((midi.status&0xf0)==0xb0) &&
+                                         (midi.cmd_buf[1]==0x79))
+                                {
+                                        PlayMsg({midi.status,0x7b,0},midi.cmd_len);
+                                }
+                                else if (((midi.status&0xf0)==0xb0) &&
+                                         (midi.cmd_buf[1]>=0x7c))
+                                {
                                 }
                                 else
                                 {
@@ -455,7 +472,7 @@ bool MIDI_Available(void)  {
 }
 
 /* SOFTMPU: Initialisation */
-void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff){
+void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bool delaysysex,bool fakeallnotesoff,bool redirectallsoundoff){
         Bitu i; /* SOFTMPU */
 	midi.sysex.delay = 0;
 	midi.sysex.start = 0;
@@ -473,20 +490,26 @@ void MIDI_Init(Bitu mpuport,Bitu sbport,Bitu serialport,OutputMode outputmode,bo
 	midi.cmd_pos=0;
 	midi.cmd_len=0;
         midi.fakeallnotesoff=fakeallnotesoff;
+        midi.redirectallsoundoff=redirectallsoundoff;
         midi.available=true;
         MIDI_output_mode=outputmode;
 
         /* SOFTMPU: Display welcome message on MT-32 */
-        for (i=0;i<30;i++)
+        if (fakeallnotesoff==false && redirectallsoundoff==false)
         {
-                MIDI_RawOutByte(MIDI_welcome_msg[i]);
+                for (i=0;i<30;i++)
+                {
+                        MIDI_RawOutByte(MIDI_welcome_msg[i]);
+                }
         }
-
-        /* SOFTMPU: Init note tracking */
-        for (i=0;i<MAX_TRACKED_CHANNELS;i++)
+        else if (fakeallnotesoff==true)
         {
-                tracked_channels[i].used=0;
-                tracked_channels[i].next=0;
+                /* SOFTMPU: Init note tracking */
+                for (i=0;i<MAX_TRACKED_CHANNELS;i++)
+                {
+                        tracked_channels[i].used=0;
+                        tracked_channels[i].next=0;
+                }
         }
 }
 
