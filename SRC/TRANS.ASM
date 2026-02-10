@@ -84,7 +84,13 @@ Init:           ; Ensure ds=cs
                 cmp             eax,'5AR/'
                 je              @@EnableFakeOff
                 cmp             eax,'5ar/'
+                je              @@EnableFakeOff
+                cmp             eax,'LLA/'
+                je              @@EnableRedirect
+                cmp             eax,'lla/'
 		jne             @@NextParam
+@@EnableRedirect:mov            es:RedirectAllSoundOff,1; Enable redirecting "All Sound Off" to "All Notes Off"
+                jmp             @@NextParam
 @@EnableFakeOff:mov             es:FakeAllNotesOff,1    ; Enable simulated "All Notes Off"
                 jmp             @@NextParam
 @@EnableDelay:  mov             es:DelaySysex,1         ; Enable sysex delays
@@ -443,7 +449,11 @@ Init:           ; Ensure ds=cs
                 je              @@NoFakeNotes
                 mov             dx,OFFSET FakeEnabled
                 int             021h
-@@NoFakeNotes:  pop             ds
+@@NoFakeNotes:  cmp             es:RedirectAllSoundOff,0
+                je              @@NoRedirect
+                mov             dx,OFFSET RedirectEnabled
+                int             021h
+@@NoRedirect:   pop             ds
 		retf                                    ; Return to caller
 
 EMMOK:          ; Ensure ds=cs

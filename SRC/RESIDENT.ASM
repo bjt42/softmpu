@@ -40,6 +40,7 @@ SBIRQ           DB              0                       ; Set from cmdline
 SerialPortAddr  DW              0                       ; Set from cmdline
 DelaySysex      DB              0                       ; Set from cmdline
 FakeAllNotesOff DB              0                       ; Set from cmdline
+RedirectAllSoundOff DB          0                       ; Set from cmdline
 
 OutMode         OutputMode      M_MPU401                ; MIDI output mode control
 

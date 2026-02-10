@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2013-2018 bjt, elianda
+; Copyright (C) 2013-2026 bjt, elianda
 ;
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ Header          DB              0DAh
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h,0C4h
                 DB              0C4h,0BFh,0Dh,0Ah
-                DB              0B3h,'SoftMPU 1.91 ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
+                DB              0B3h,'SoftMPU 1.92 ',0FEh,' Software MPU-401 Emulator',0B3h,0Dh,0Ah
                 DB              0B3h,'                                        ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2013-2014  bjt, elianda   ',0B3h,0Dh,0Ah
                 DB              0B3h,'Copyright (C) 2002-2013  The DOSBox Team',0B3h,0Dh,0Ah
@@ -69,7 +69,7 @@ LoadedStart     DB              0Dh,0Ah,0Eh,' SoftMPU active at port ','$'
 LoadedMid       DB              ' IRQ ','$'
 LoadedEnd       DB              0Dh,0Ah,'$'
 HelpText        DB              'Usage: SOFTMPU /MPU:nnn [/SB:nnn /IRQ:nn] [/OUTPUT:[outputs]]',0Dh,0Ah
-                DB              '               [/DELAYSYSEX] [/RA50]',0Dh,0Ah
+                DB              '               [/DELAYSYSEX] [/RA50] [/ALLSOUNDOFF]',0Dh,0Ah
                 DB              0Dh,0Ah
                 DB              '  /MPU:nnn     MPU-401 base port address (220-350)',0Dh,0Ah
                 DB              '  /SB:nnn      Sound Blaster base port address (220-280)',0Dh,0Ah
@@ -79,6 +79,7 @@ HelpText        DB              'Usage: SOFTMPU /MPU:nnn [/SB:nnn /IRQ:nn] [/OUT
                 DB              '                 COMn    Serial interface (1-4)',0Dh,0Ah
                 DB              '  /DELAYSYSEX  Prevent Rev.0 MT-32 buffer overflow',0Dh,0Ah
                 DB              '  /RA50        Simulate "All Notes Off" for Roland RA-50',0Dh,0Ah,'$'
+                DB              '  /ALLSOUNDOFF Redirect "All Sound Off" to "All Notes Off" (prevents turning off reverb and effect for LG GS1000R)',0Dh,0Ah,'$'
 EMMDevice       DB              'EMMXXXX0',00h
 EMMDevice2      DB              'EMMQXXX0',00h
 QEMMDevice      DB              'QEMM386$',00h
