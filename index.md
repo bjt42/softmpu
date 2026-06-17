@@ -3,7 +3,7 @@
 **Update 16/06/14** - SoftMPU 1.9 is out! This release adds support for large SYSEX messages.
 
 ***
-**Download SoftMPU here:** [http://github.com/bjt42/softmpu/archive/v1.91.zip](https://github.com/bjt42/softmpu/archive/v1.91.zip)
+**Download SoftMPU here:** [https://github.com/bjt42/softmpu/archive/v1.91.zip](https://github.com/bjt42/softmpu/archive/v1.91.zip)
 
 **Discuss SoftMPU here:** [http://www.vogons.org/viewforum.php?f=57](http://www.vogons.org/viewforum.php?f=57)
 
